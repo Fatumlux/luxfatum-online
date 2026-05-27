@@ -1,0 +1,30 @@
+部署成真正網站 Render 版
+
+目的：
+- 部署後會取得一個 https://xxxxx.onrender.com 網址。
+- 玩家不用在同一個區網，也不用連你的本機 IP。
+- 兩位玩家都打開同一個網站，P1 建房、P2 輸入房號即可。
+
+目前狀態：
+- 專案已經準備好部署設定。
+- 若要我直接幫你部署永久網址，需要你提供 Render/GitHub 帳號登入授權，或把此資料夾上傳到你自己的 GitHub repository 後讓 Render 讀取。
+
+步驟：
+1. 到 https://render.com 註冊或登入。
+2. 建立一個 GitHub repository，把此資料夾內容上傳。
+3. 在 Render 選 New + Blueprint。
+4. 選擇剛剛的 repository。
+5. Render 會讀取 render.yaml，自動建立 Web Service。
+6. 部署完成後，打開 Render 給你的網址。
+
+如果不用 GitHub：
+1. 在 Render 選 New + Web Service。
+2. 上傳或連接此專案。
+3. Runtime 選 Node。
+4. Build Command 填：npm install
+5. Start Command 填：npm start
+
+注意：
+- 免費方案閒置後可能會休眠，第一次開網頁可能要等數十秒。
+- 房間資料存在伺服器記憶體裡，服務重啟後房間會消失。
+- 如果你要房間在伺服器重啟後也保留，需要再接資料庫。

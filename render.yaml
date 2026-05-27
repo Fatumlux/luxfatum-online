@@ -1,8 +1,0 @@
-services:
-  - type: web
-    name: luxfatum-online-v4-1
-    env: node
-    plan: free
-    buildCommand: npm install
-    startCommand: npm start
-    autoDeploy: true

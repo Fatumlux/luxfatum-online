@@ -172,6 +172,7 @@ function shouldPackage(rel) {
   if (clean.startsWith("verification-") || clean.endsWith(".zip") || clean.endsWith(".log")) return false;
   return [
     "assets/",
+    "src/",
     "dist/windows/LuxFatum.exe",
     "dist/windows/Microsoft.Web.WebView2.Core.dll",
     "dist/windows/Microsoft.Web.WebView2.WinForms.dll",
@@ -182,6 +183,8 @@ function shouldPackage(rel) {
     "index.html",
     "server.js",
     "package.json",
+    "package-lock.json",
+    "vite.config.mjs",
     "release.json",
     "render.yaml",
     "Dockerfile",

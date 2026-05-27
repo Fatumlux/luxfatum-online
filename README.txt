@@ -1,52 +1,43 @@
-LuxFatum 裁定對決 v4.2 連線版
+LuxFatum 裁定對決 v4.2.1 桌面連線版
 
-啟動方式：
-1. 安裝 Node.js 18 或更新版本。
-2. 雙擊 start_server.bat，或在此資料夾開啟終端機後執行：npm start
-3. 本機打開：http://localhost:8787
-4. 同區網其他電腦打開：http://這台電腦的IP:8787
+本版本提供兩種玩法：
 
-Windows 遊戲版：
-- 解壓 Windows 版遊戲包後，執行 LuxFatum.exe。
-- 啟動器會直接打開線上連線版：https://luxfatum-online.onrender.com
-- 可跨網路建立房間與加入房間。
-- 若要離線本機模式，可用命令列執行 LuxFatum.exe --local。
+1. 線上網頁版
+   部署到 Render 後，可用網址開啟並建立/加入房間。
 
-真正網站部署：
-- 請看 DEPLOY_RENDER.txt。
-- 部署後會得到 https://... 的網址，玩家不用在同一區網，也不用開本機伺服器。
-- Render/GitHub 部署包可直接解壓上傳 GitHub，Render 會讀取 render.yaml。
+2. Windows 下載版
+   執行 LuxFatum.exe 後，遊戲會在本地桌面視窗中開啟。
+   畫面與素材從本機載入，房間對戰資料直接連到線上 Render 伺服器。
 
-連線對戰：
-1. 第一位玩家按「建立線上房間」，座位是 P1。
-2. 建房後頁面上方會顯示大型房號，例如 ABC23。
-3. P1 可按「複製房號」或「複製邀請連結」傳給 P2。
-4. P2 打開邀請連結會看到「加入邀請房間」，按下即可加入。
-5. 如果 P2 只拿到房號，也可以在首頁輸入房號加入。
-6. 兩邊都會自動同步選角與戰鬥狀態。
+Render 部署
+1. 將本資料夾內容上傳到 GitHub repository 根目錄。
+2. Render 建立 Blueprint 或 Web Service。
+3. Build Command：npm install
+4. Start Command：npm start
+5. 部署後檢查：
+   /api/health
+   /api/version
 
-離線遊玩：
-- 直接按「本機雙人遊玩」即可在同一台電腦玩。
+Windows 下載版
+- 玩家下載 Windows zip 後解壓縮。
+- 執行 LuxFatum.exe。
+- 不會跳外部瀏覽器。
+- 不需要 Node.js。
+- 可建立房間或輸入房號加入。
+- 下載版與線上網頁版使用同一套房間 API，可互相連線。
 
-檔案說明：
-- index.html：遊戲本體，支援本機與線上房間。
-- server.js：免外部套件的 Node 連線同步伺服器。
-- release.json：版本號、最低支援版本、強制更新與下載連結。
-- package.json：啟動腳本。
-- start_server.bat：Windows 雙擊啟動用。
-- LuxFatum.exe：Windows 遊戲啟動器，放在 Windows 版遊戲包根目錄。
-- render.yaml：Render 網站部署設定。
-- Dockerfile：Docker / Railway / Fly.io 等平台可用。
-- DEPLOY_RENDER.txt：部署成公開網站的步驟。
+版本與更新
+- release.json 控制版本號、更新提示與強制更新。
+- /download/windows.zip 提供玩家下載包。
+- /download/package.zip 提供 Render/GitHub 上傳包。
+- 房間對戰 API 保持不變：/api/create、/api/join、/api/state。
 
-更新與下載：
-- /api/version：版本檢查、未來更新提示、強制更新判定。
-- /api/health：Render 健康檢查與版本確認。
-- /download/windows.zip：Windows 遊戲包。
-- /download/package.zip：Render/GitHub 部署包。
-- 強制更新可在 release.json 設定 forceUpdate 或 minSupportedVersion。
-
-注意：
-- 若其他電腦連不上，請確認兩台電腦在同一 Wi-Fi/區網，並允許 Windows 防火牆讓 Node.js 使用連線。
-- 此版本採回合制狀態同步，適合朋友對戰測試；不要把房號公開給不相關的人。
-- 臨時 trycloudflare 網址只要主機電腦或 tunnel 關閉就會失效；永久網址請部署到 Render 或其他 Node 網站平台。
+主要檔案
+- index.html：遊戲前端。
+- server.js：靜態檔案、房間 API、下載包、桌面版 API 轉送。
+- release.json：版本、更新與下載資訊。
+- package.json：Node 啟動設定。
+- render.yaml：Render 部署設定。
+- launcher/LuxFatumLauncher.cs：Windows 桌面啟動器原始碼。
+- dist/windows/LuxFatum.exe：Windows 桌面版執行檔。
+- dist/windows/*.dll：桌面 WebView2 需要的 DLL。

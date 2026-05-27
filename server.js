@@ -4,6 +4,8 @@ const path = require("path");
 
 const PORT = Number(process.env.PORT || 8787);
 const ROOT = __dirname;
+const API_BASE = String(process.env.LUXFATUM_API_BASE || "").replace(/\/+$/, "");
+const PROXY_API_PATHS = new Set(["/api/create", "/api/join", "/api/state"]);
 const rooms = new Map();
 const packageInfo = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
 const releaseInfo = JSON.parse(fs.readFileSync(path.join(ROOT, "release.json"), "utf8"));
@@ -17,7 +19,7 @@ const APP_META = {
   minSupportedVersion: releaseInfo.minSupportedVersion || releaseInfo.version || packageInfo.version || "0.0.0",
   forceUpdate: !!releaseInfo.forceUpdate,
   packageName: `luxfatum-online-v${releaseInfo.version || packageInfo.version || "0.0.0"}-render-github.zip`,
-  windowsPackageName: `LuxFatum-Windows-Online-v${releaseInfo.version || packageInfo.version || "0.0.0"}.zip`
+  windowsPackageName: `LuxFatum-Windows-Desktop-Online-v${releaseInfo.version || packageInfo.version || "0.0.0"}.zip`
 };
 
 const mime = {
@@ -60,6 +62,35 @@ function readBody(req) {
       catch (err) { reject(err); }
     });
   });
+}
+
+async function proxyApi(req, res, url) {
+  const target = `${API_BASE}${url.pathname}${url.search}`;
+  const init = {
+    method: req.method,
+    headers: {
+      "content-type": req.headers["content-type"] || "application/json; charset=utf-8"
+    }
+  };
+
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    init.body = JSON.stringify(await readBody(req));
+  }
+
+  try {
+    const upstream = await fetch(target, init);
+    const body = await upstream.text();
+    res.writeHead(upstream.status, {
+      "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "access-control-allow-origin": "*",
+      "access-control-allow-methods": "GET,POST,OPTIONS",
+      "access-control-allow-headers": "content-type"
+    });
+    res.end(body);
+  } catch (err) {
+    json(res, 502, { ok: false, error: `線上伺服器連線失敗：${err.message}` });
+  }
 }
 
 function roomCode() {
@@ -134,10 +165,14 @@ function dosDate(date) {
 function shouldPackage(rel) {
   const clean = rel.replace(/\\/g, "/");
   if (!clean || clean.startsWith(".git/") || clean.startsWith("runtime_logs/") || clean.startsWith("node_modules/")) return false;
+  if (clean.startsWith("launcher/webview2_pkg/")) return false;
   if (clean.startsWith("verification-") || clean.endsWith(".zip") || clean.endsWith(".log")) return false;
   return [
     "assets/",
     "dist/windows/LuxFatum.exe",
+    "dist/windows/Microsoft.Web.WebView2.Core.dll",
+    "dist/windows/Microsoft.Web.WebView2.WinForms.dll",
+    "dist/windows/WebView2Loader.dll",
     "launcher/",
     "index.html",
     "server.js",
@@ -231,6 +266,10 @@ function windowsPackageFiles() {
   if (!fs.existsSync(exe)) return null;
   const files = packageFiles().filter(file => !file.rel.startsWith("launcher/") && !file.rel.startsWith("dist/"));
   files.push({ full: exe, rel: "LuxFatum.exe", stat: fs.statSync(exe) });
+  for (const name of ["Microsoft.Web.WebView2.Core.dll", "Microsoft.Web.WebView2.WinForms.dll", "WebView2Loader.dll"]) {
+    const full = path.join(ROOT, "dist", "windows", name);
+    if (fs.existsSync(full)) files.push({ full, rel: name, stat: fs.statSync(full) });
+  }
   return files.sort((a, b) => a.rel.localeCompare(b.rel));
 }
 
@@ -260,6 +299,10 @@ setInterval(() => {
 
 async function handleApi(req, res, url) {
   if (req.method === "OPTIONS") return json(res, 204, {});
+
+  if (API_BASE && PROXY_API_PATHS.has(url.pathname)) {
+    return proxyApi(req, res, url);
+  }
 
   if (url.pathname === "/api/version" && req.method === "GET") {
     return json(res, 200, versionPayload(url.searchParams.get("client")));

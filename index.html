@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LuxFatum 裁定對決 v4.2.0 線上版</title>
+  <title>LuxFatum 裁定對決 v4.2.1 桌面連線版</title>
   <style>
     :root {
       color-scheme: dark;
@@ -441,7 +441,14 @@
 <div id="app"></div>
 <script>
 const STATUS = { SEAL:"封印", OBSERVE:"觀測", CONFUSE:"混亂", SLOW:"遲緩", GUARD:"守護" };
-const APP_VERSION = "4.2.0";
+const APP_VERSION = "4.2.1";
+const ONLINE_URL = "https://luxfatum-online.onrender.com";
+function apiUrl(path){
+  return location.protocol === "file:" && path.startsWith("/api/") ? `${ONLINE_URL}${path}` : path;
+}
+function downloadUrl(path){
+  return location.protocol === "file:" ? `${ONLINE_URL}${path}` : path;
+}
 const NEG = [STATUS.SEAL, STATUS.OBSERVE, STATUS.CONFUSE, STATUS.SLOW];
 const STATUS_META = {
   [STATUS.SEAL]: { icon:"印", tone:"bad", desc:"下次行動不能使用技能；行動結束後移除。" },
@@ -486,7 +493,7 @@ let net = { mode:"local", room:"", seat:"", rev:0, polling:false, status:initial
 function freshState() {
   return {
     screen:"menu", round:0, draftTurn:"p1", pickIndex:0, p1Draft:[], p2Draft:[],
-    players:null, queue:[], active:null, winner:null, logs:["歡迎來到 LuxFatum v4.2.0 線上版。"],
+    players:null, queue:[], active:null, winner:null, logs:["歡迎來到 LuxFatum v4.2.1 桌面連線版。"],
     lastSkill:null, lastCopyableSkill:{p1:null,p2:null}, pendingSkill:null, pendingConfuseAttack:null,
     lowestFirst:false, tianAtkBuff:false, tianSkillDebuff:false, lastHit:null, shakeStamp:0, fx:null
   };
@@ -653,7 +660,7 @@ async function joinRoom(roomOverride){
 }
 async function api(url, body){
   try {
-    const res = await fetch(url, { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify(body || {}) });
+    const res = await fetch(apiUrl(url), { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify(body || {}) });
     return await res.json();
   } catch(e) { return { ok:false, error:e.message }; }
 }
@@ -668,7 +675,7 @@ async function sync(){
 async function poll(){
   if(net.mode !== "online" || !net.polling) return;
   try {
-    const res = await fetch(`/api/state?room=${encodeURIComponent(net.room)}`);
+    const res = await fetch(apiUrl(`/api/state?room=${encodeURIComponent(net.room)}`));
     const data = await res.json();
     if(data.ok && data.rev > net.rev){ net.rev = data.rev; state = data.state; render(); }
   } catch(e){ net.status = "同步中斷，稍後重試"; }
@@ -677,7 +684,7 @@ async function poll(){
 async function forceSync(){
   if(net.mode !== "online" || !net.room) return;
   try {
-    const res = await fetch(`/api/state?room=${encodeURIComponent(net.room)}`);
+    const res = await fetch(apiUrl(`/api/state?room=${encodeURIComponent(net.room)}`));
     const data = await res.json();
     if(data.ok){ net.rev = data.rev; state = data.state; net.status = "已重新同步"; }
     else net.status = data.error || "重新同步失敗";
@@ -692,7 +699,7 @@ async function checkForUpdates(manual=false){
   releaseState.error = "";
   if(manual) render();
   try {
-    const res = await fetch(`/api/version?client=${encodeURIComponent(APP_VERSION)}`, { cache:"no-store" });
+    const res = await fetch(apiUrl(`/api/version?client=${encodeURIComponent(APP_VERSION)}`), { cache:"no-store" });
     const data = await res.json();
     if(!data.ok) throw new Error(data.error || "版本檢查失敗");
     releaseState = { checked:true, checking:false, data, error:"" };
@@ -701,15 +708,17 @@ async function checkForUpdates(manual=false){
   }
   render();
 }
-function downloadWindows(){ audio.play("ui"); location.href = "/download/windows.zip"; }
-function downloadPackage(){ audio.play("ui"); location.href = "/download/package.zip"; }
+function downloadWindows(){ audio.play("ui"); location.href = downloadUrl("/download/windows.zip"); }
+function downloadPackage(){ audio.play("ui"); location.href = downloadUrl("/download/package.zip"); }
 function openVersionInfo(){ audio.play("ui"); checkForUpdates(true); }
 async function commit(){ render(); await sync(); }
 function showRules(){ audio.play("ui"); view = "rules"; dialog = null; render(); }
 function closeRules(){ audio.play("ui"); view = null; render(); }
 function inviteLink(){
   if(!net.room) return location.href;
-  return `${location.origin}${location.pathname}?room=${encodeURIComponent(net.room)}`;
+  const base = location.protocol === "file:" || location.hostname === "127.0.0.1" || location.hostname === "localhost" ? ONLINE_URL : location.origin;
+  const path = location.protocol === "file:" ? "/" : location.pathname;
+  return `${base}${path}?room=${encodeURIComponent(net.room)}`;
 }
 async function copyInvite(){
   const text = `LuxFatum 對戰房號：${net.room}\n直接加入：${inviteLink()}`;
@@ -1194,7 +1203,7 @@ function renderRulesPage(){
   return `<section class="rules-page">
     <section class="rules-hero">
       <div>
-        <span class="pill">v4.2.0 線上連線版</span>
+        <span class="pill">v4.2.1 桌面連線版</span>
         <h2>規則書</h2>
         <p>雙方各選 <span class="hi-gold">3 名角色</span>，用攻擊、技能、共鳴、狀態與裁定標記擊倒對手全部角色。規則頁整理成可快速查閱的版面，對戰中也能直接打開。</p>
         <div class="row"><button onclick="closeRules()">回到遊戲</button><button onclick="startLocal()">本機開局</button></div>

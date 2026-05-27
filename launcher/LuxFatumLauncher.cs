@@ -1,61 +1,64 @@
 using System;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
 
 internal static class LuxFatumLauncher
 {
-    private const int Port = 8787;
-    private const string LocalUrl = "http://localhost:8787";
     private const string OnlineUrl = "https://luxfatum-online.onrender.com";
 
     [STAThread]
     private static void Main(string[] args)
     {
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
         string appDir = AppDomain.CurrentDomain.BaseDirectory;
-        string serverJs = Path.Combine(appDir, "server.js");
         string logDir = Path.Combine(appDir, "runtime_logs");
         Directory.CreateDirectory(logDir);
+        Process server = null;
 
         try
         {
-            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-            if (!HasArg(args, "--local"))
+            if (HasArg(args, "--web"))
             {
                 Process.Start(new ProcessStartInfo(OnlineUrl) { UseShellExecute = true });
                 return;
             }
 
-            if (!File.Exists(serverJs))
+            string url;
+            if (HasArg(args, "--local-server"))
             {
-                MessageBox.Show("線上伺服器暫時連不上，也找不到離線版 server.js。\n請確認網路連線，或重新下載完整遊戲包。", "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
+                url = StartLocalServer(appDir, logDir, out server);
+                if (url == null) return;
             }
-
-            if (!IsServerReady())
+            else
             {
-                string node = FindNode(appDir);
-                if (node == null)
+                string index = Path.Combine(appDir, "index.html");
+                if (!File.Exists(index))
                 {
-                    MessageBox.Show("找不到 Node.js，無法啟動本機版。\n\n請安裝 Node.js，或使用線上 Render 版本遊玩。", "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("LuxFatum desktop package is incomplete. Missing index.html.", "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
-
-                StartServer(node, appDir, logDir);
-                if (!WaitForServer())
-                {
-                    MessageBox.Show("線上伺服器暫時連不上，離線本機伺服器也啟動失敗。\n請查看 runtime_logs 資料夾內的 launcher/server log。", "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
+                url = new Uri(index).AbsoluteUri;
             }
 
-            Process.Start(new ProcessStartInfo(LocalUrl) { UseShellExecute = true });
+            using (GameForm form = new GameForm(url, appDir, server))
+            {
+                Application.Run(form);
+            }
         }
         catch (Exception ex)
         {
+            TryKill(server);
             File.AppendAllText(Path.Combine(logDir, "launcher.log"), DateTime.Now + " " + ex + Environment.NewLine);
             MessageBox.Show(ex.Message, "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
@@ -68,6 +71,35 @@ internal static class LuxFatumLauncher
             if (string.Equals(arg, value, StringComparison.OrdinalIgnoreCase)) return true;
         }
         return false;
+    }
+
+    private static string StartLocalServer(string appDir, string logDir, out Process server)
+    {
+        server = null;
+        string serverJs = Path.Combine(appDir, "server.js");
+        if (!File.Exists(serverJs))
+        {
+            MessageBox.Show("LuxFatum desktop package is incomplete. Missing server.js.", "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return null;
+        }
+
+        string node = FindNode(appDir);
+        if (node == null)
+        {
+            MessageBox.Show("LuxFatum local-server mode needs runtime/node.exe or Node.js.", "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return null;
+        }
+
+        int port = GetFreePort();
+        string localUrl = "http://127.0.0.1:" + port;
+        server = StartServer(node, appDir, logDir, port);
+        if (server == null || !WaitForServer(localUrl))
+        {
+            TryKill(server);
+            MessageBox.Show("LuxFatum local game runtime failed to start. Check runtime_logs for details.", "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return null;
+        }
+        return localUrl;
     }
 
     private static string FindNode(string appDir)
@@ -92,7 +124,16 @@ internal static class LuxFatumLauncher
         return null;
     }
 
-    private static void StartServer(string node, string appDir, string logDir)
+    private static int GetFreePort()
+    {
+        TcpListener listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
+    private static Process StartServer(string node, string appDir, string logDir, int port)
     {
         string stdout = Path.Combine(logDir, "server-launcher-out.log");
         string stderr = Path.Combine(logDir, "server-launcher-err.log");
@@ -104,27 +145,27 @@ internal static class LuxFatumLauncher
             RedirectStandardOutput = true,
             RedirectStandardError = true
         };
+        psi.EnvironmentVariables["PORT"] = port.ToString();
+        psi.EnvironmentVariables["LUXFATUM_API_BASE"] = OnlineUrl;
+        psi.EnvironmentVariables["LUXFATUM_DESKTOP"] = "1";
+
         Process p = Process.Start(psi);
-        if (p == null) return;
+        if (p == null) return null;
         p.OutputDataReceived += (sender, args) => { if (args.Data != null) File.AppendAllText(stdout, args.Data + Environment.NewLine); };
         p.ErrorDataReceived += (sender, args) => { if (args.Data != null) File.AppendAllText(stderr, args.Data + Environment.NewLine); };
         p.BeginOutputReadLine();
         p.BeginErrorReadLine();
+        return p;
     }
 
-    private static bool WaitForServer()
+    private static bool WaitForServer(string localUrl)
     {
-        for (int i = 0; i < 40; i += 1)
+        for (int i = 0; i < 60; i += 1)
         {
-            if (IsServerReady()) return true;
+            if (IsUrlReady(localUrl + "/api/health")) return true;
             Thread.Sleep(250);
         }
         return false;
-    }
-
-    private static bool IsServerReady()
-    {
-        return IsUrlReady(LocalUrl + "/api/health") || IsUrlReady(LocalUrl);
     }
 
     private static bool IsUrlReady(string url)
@@ -142,6 +183,103 @@ internal static class LuxFatumLauncher
         catch
         {
             return false;
+        }
+    }
+
+    private static void TryKill(Process process)
+    {
+        try
+        {
+            if (process != null && !process.HasExited) process.Kill();
+        }
+        catch { }
+    }
+
+    private sealed class GameForm : Form
+    {
+        private readonly string url;
+        private readonly string appDir;
+        private readonly Process server;
+        private readonly WebView2 webView;
+        private bool fullscreen;
+        private FormBorderStyle savedBorder;
+        private FormWindowState savedState;
+        private Rectangle savedBounds;
+
+        public GameForm(string url, string appDir, Process server)
+        {
+            this.url = url;
+            this.appDir = appDir;
+            this.server = server;
+            Text = "LuxFatum";
+            BackColor = Color.FromArgb(8, 9, 12);
+            ClientSize = new Size(1366, 820);
+            MinimumSize = new Size(980, 620);
+            StartPosition = FormStartPosition.CenterScreen;
+            KeyPreview = true;
+
+            webView = new WebView2
+            {
+                Dock = DockStyle.Fill,
+                DefaultBackgroundColor = Color.FromArgb(8, 9, 12)
+            };
+            Controls.Add(webView);
+
+            Load += async (sender, args) => await InitWebView();
+            FormClosed += (sender, args) => TryKill(server);
+            KeyDown += (sender, args) =>
+            {
+                if (args.KeyCode == Keys.F11)
+                {
+                    ToggleFullscreen();
+                    args.Handled = true;
+                }
+            };
+        }
+
+        private async Task InitWebView()
+        {
+            try
+            {
+                string userData = Path.Combine(appDir, "runtime", "webview2-user-data");
+                Directory.CreateDirectory(userData);
+                CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(null, userData);
+                await webView.EnsureCoreWebView2Async(env);
+
+                webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                webView.CoreWebView2.Settings.AreDefaultScriptDialogsEnabled = true;
+                webView.CoreWebView2.NewWindowRequested += (sender, args) =>
+                {
+                    args.Handled = true;
+                    webView.CoreWebView2.Navigate(args.Uri);
+                };
+                webView.CoreWebView2.Navigate(url);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Microsoft Edge WebView2 Runtime is required to run LuxFatum as a desktop app.\n\n" + ex.Message, "LuxFatum", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                Close();
+            }
+        }
+
+        private void ToggleFullscreen()
+        {
+            if (!fullscreen)
+            {
+                savedBorder = FormBorderStyle;
+                savedState = WindowState;
+                savedBounds = Bounds;
+                FormBorderStyle = FormBorderStyle.None;
+                WindowState = FormWindowState.Maximized;
+                fullscreen = true;
+                return;
+            }
+
+            FormBorderStyle = savedBorder;
+            WindowState = savedState;
+            Bounds = savedBounds;
+            fullscreen = false;
         }
     }
 }

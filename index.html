@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LuxFatum 裁定對決 v4.1 連線版</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #101114;
+      --panel: #191b22;
+      --panel2: #222632;
+      --line: #343947;
+      --text: #eef1f6;
+      --muted: #a8afbd;
+      --blue: #5aa7ff;
+      --red: #ff6c7a;
+      --green: #7ddc9a;
+      --gold: #ffd166;
+      --violet: #b798ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    button, input, select { font: inherit; }
+    button { border: 1px solid var(--line); background: var(--panel2); color: var(--text); border-radius: 8px; padding: 10px 12px; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: var(--blue); filter: brightness(1.08); }
+    button:disabled { opacity: .42; cursor: not-allowed; }
+    input, select { background: #0d0f14; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 10px; width: 100%; }
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+    .app.shake { animation: screenShake .22s ease; }
+    .top { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 18px; border-bottom: 1px solid var(--line); background: #14161c; }
+    .brand h1 { margin: 0; font-size: 21px; letter-spacing: .03em; }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+    .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .wrap { width: min(1380px, 100%); margin: 0 auto; padding: 16px; }
+    .grid { display: grid; gap: 14px; }
+    .menu { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); align-items: stretch; margin-top: 42px; }
+    .card, .fighter, .log, .actions, .draft-card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+    .card { padding: 18px; }
+    .card h2 { margin: 0 0 10px; }
+    .card p { color: var(--muted); line-height: 1.6; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .pill { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line); background: #10131a; padding: 3px 8px; border-radius: 999px; font-size: 12px; color: var(--muted); }
+    .subtle { color: var(--muted); font-size: 13px; }
+    .p1 { color: var(--blue); }
+    .p2 { color: var(--red); }
+    .battle { display: grid; grid-template-columns: 1fr minmax(340px, 420px) 1fr; gap: 14px; align-items: start; }
+    .team { display: grid; gap: 10px; }
+    .team-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    .fighter { padding: 12px; }
+    .fighter.active { outline: 2px solid var(--gold); }
+    .fighter.dead { opacity: .45; }
+    .fighter.hit { animation: hitFlash .5s ease; }
+    .fighter h3 { display: flex; justify-content: space-between; margin: 0 0 8px; }
+    .hpbar { height: 10px; background: #08090c; border-radius: 999px; overflow: hidden; border: 1px solid #2b303b; }
+    .hpfill { height: 100%; background: linear-gradient(90deg, #62d987, #f3ce63, #ee6b73); }
+    .stats, .statuses { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .desc { color: var(--muted); font-size: 12px; line-height: 1.45; margin: 8px 0 0; }
+    .center { display: grid; gap: 12px; }
+    .actions { padding: 12px; }
+    .actions h2 { margin: 0 0 10px; font-size: 18px; }
+    .action-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .log { padding: 12px; max-height: 430px; overflow: auto; }
+    .log h2 { margin: 0 0 8px; font-size: 16px; }
+    .log-line { color: #d9deea; border-bottom: 1px solid #252a35; padding: 6px 0; font-size: 13px; }
+    .log-line.impact { color: var(--gold); animation: logPop .28s ease; }
+    .draft { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+    .draft-card { padding: 12px; text-align: left; min-height: 155px; }
+    .draft-card.selected { opacity: .45; }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: grid; place-items: center; padding: 16px; z-index: 10; }
+    .dialog { width: min(720px, 100%); max-height: 88vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+    .dialog h2 { margin: 0 0 12px; }
+    .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
+    .choice { text-align: left; min-width: 0; overflow-wrap: anywhere; }
+    .choice input { width: auto; margin-right: 6px; }
+    .online { display: grid; gap: 10px; padding: 12px; background: #11141b; border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; }
+    .pending { border-color: var(--gold); background: #211c12; }
+    .room-banner { display: grid; gap: 10px; background: #141a24; border: 1px solid #3b4659; border-radius: 8px; padding: 14px; margin-bottom: 14px; }
+    .room-code { font-size: 30px; font-weight: 900; letter-spacing: .18em; color: var(--gold); }
+    .invite-link { word-break: break-all; color: var(--muted); font-size: 13px; }
+    .notice { color: var(--gold); font-size: 13px; }
+    .bad { color: var(--red); }
+    .good { color: var(--green); }
+    @keyframes hitFlash {
+      0% { transform: translateX(0); box-shadow: 0 0 0 rgba(255,209,102,0); }
+      18% { transform: translateX(-5px); box-shadow: 0 0 24px rgba(255,108,122,.52); }
+      36% { transform: translateX(5px); }
+      60% { transform: translateX(-2px); }
+      100% { transform: translateX(0); box-shadow: 0 0 0 rgba(255,209,102,0); }
+    }
+    @keyframes screenShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      50% { transform: translateX(4px); }
+      75% { transform: translateX(-2px); }
+    }
+    @keyframes logPop {
+      0% { transform: scale(.98); filter: brightness(1.4); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+    @media (max-width: 980px) {
+      .battle { grid-template-columns: 1fr; }
+      .top { align-items: flex-start; flex-direction: column; }
+      .top-actions { justify-content: flex-start; }
+      .action-grid { grid-template-columns: 1fr; }
+      .room-banner .row { align-items: flex-start; }
+      .room-code { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const STATUS = { SEAL:"封印", OBSERVE:"觀測", CONFUSE:"混亂", SLOW:"遲緩", GUARD:"守護" };
+const NEG = [STATUS.SEAL, STATUS.OBSERVE, STATUS.CONFUSE, STATUS.SLOW];
+const CHARS = [
+  {id:"ningyao",name:"寧曜",hp:9,atk:3,spd:2,passive:"每場1次，即將被擊倒時若已有裁定，可消耗1裁定保留1HP。",skill:{name:"寧曜裁定",cost:2,cd:2,desc:"對1敵造成3傷害並封印。"},res:{name:"裁光",desc:"技能後回復1HP。"}},
+  {id:"hengshuo",name:"衡朔",hp:8,atk:2,spd:3,passive:"每回合1次，可代替1名我方角色承受傷害。",skill:{name:"近身護衛",cost:2,cd:2,desc:"我方1角色本回合受傷-2，並移除1個觀測；若成功減傷，衡朔回復1HP。"},res:{name:"護持",desc:"技能目標獲得守護。"}},
+  {id:"youming",name:"幽冥",hp:7,atk:2,spd:4,passive:"每回合第一次受到傷害-1。",skill:{name:"幽影封步",cost:2,cd:1,desc:"對1敵造成2傷害並遲緩。"},res:{name:"暗痕",desc:"技能後目標本回合ATK-1。"}},
+  {id:"leiting",name:"雷霆",hp:8,atk:2,spd:3,passive:"普攻HP高於自己的敵人時，傷害+1。",skill:{name:"雷斬突進",cost:3,cd:2,desc:"對1敵造成4傷害。"},res:{name:"壓陣",desc:"技能後給予目標觀測。每場最多2次。"}},
+  {id:"baijian",name:"白繭",hp:8,atk:1,spd:2,passive:"回合結束時，若我方本回合受傷，回復HP最低的我方1HP。",skill:{name:"白色繭房",cost:3,cd:2,desc:"我方1角色回復3HP，並移除1負面狀態；若其HP最低，再回復1HP。"},res:{name:"包覆",desc:"技能目標獲得守護。"}},
+  {id:"dengzhen",name:"燈真",hp:7,atk:2,spd:3,passive:"回合開始時，若技能冷卻為0，我方獲得1能量。",skill:{name:"秩序重排",cost:2,cd:2,desc:"選1角色本回合SPD+2或-2；若目標是我方，回復1HP。"},res:{name:"整序",desc:"技能目標本回合受傷-1。"}},
+  {id:"ino",name:"伊諾",hp:7,atk:2,spd:3,passive:"每場2次，敵方使用技能時，可使其費用+1；若仍成功，伊諾獲1能量。",skill:{name:"弱點標記",cost:2,cd:1,desc:"給予1敵觀測；若目標已有觀測，改為造成3傷害並移除觀測。"},res:{name:"解析",desc:"技能目標本回合受傷+1。"}},
+  {id:"aila",name:"艾菈",hp:7,atk:2,spd:2,passive:"若自己沒有負面狀態，受到技能傷害-1；若有封印，回合開始時移除。",skill:{name:"靜默封存",cost:2,cd:2,desc:"給予1敵封印；若目標有觀測，額外造成2傷害。"},res:{name:"低聲",desc:"技能後獲得1能量。"}},
+  {id:"leiyouxi",name:"雷幽曦",hp:8,atk:3,spd:3,passive:"我方角色被擊倒後，雷幽曦下一次造成傷害+1。",skill:{name:"強硬破口",cost:2,cd:2,desc:"對1敵造成3傷害；若我方落後，給予混亂。"},res:{name:"反擊",desc:"技能傷害+1。"}},
+  {id:"baidengling",name:"白燈澪",hp:7,atk:1,spd:2,passive:"每場1次，即將被擊倒時保留1HP；下回合不能攻擊。",skill:{name:"希望微光",cost:2,cd:2,desc:"我方全體回復1HP；HP最低我方額外回復1HP；若我方落後，額外獲得1裁定。"},res:{name:"餘光",desc:"技能後，HP最低的我方角色移除1個負面狀態。"}},
+  {id:"yiaiqian",name:"伊艾栞",hp:7,atk:2,spd:2,passive:"任一角色技能成功結算後，獲得1紀錄，最多3個。",skill:{name:"重放紀錄",cost:2,cd:1,desc:"消耗1紀錄，複製上一個成功結算技能的基礎傷害或治癒值。"},res:{name:"續寫",desc:"技能後獲得1能量。"}},
+  {id:"weixiang",name:"未響",hp:9,atk:2,spd:1,passive:"我方每回合第一次受到3以上傷害時，該傷害-1。",skill:{name:"沉默支點",cost:2,cd:1,desc:"我方1角色獲得守護並回復1HP。"},res:{name:"支點",desc:"技能目標本回合下次受傷額外-1。"}},
+  {id:"xiaomo",name:"小莫",hp:6,atk:2,spd:4,passive:"每場1次，即將被擊倒時擲硬幣；正面保留1HP，反面獲得1裁定。",skill:{name:"欸我亂講的",cost:1,cd:1,desc:"指定1敵擲硬幣；正面造成4傷害，反面給予混亂，自己受1傷害。"},res:{name:"下注",desc:"若本次未造成傷害，額外給予遲緩。"}},
+  {id:"huiyin",name:"迴音",hp:7,atk:1,spd:3,passive:"每回合1次，我方獲得負面狀態時，可轉移給自己。",skill:{name:"回聲模仿",cost:2,cd:2,desc:"複製我方上一個可被複製且成功結算的技能；若沒有可複製技能，改為對1敵造成2傷害。"},res:{name:"回聲",desc:"此技能費用-1。"}},
+  {id:"yingli",name:"映璃",hp:7,atk:2,spd:4,passive:"不能被觀測；每回合第一次成為技能目標時，該傷害-2。",skill:{name:"視線偏移",cost:2,cd:1,desc:"給予1敵混亂；該敵本回合下次攻擊不能指定映璃。若目標已有混亂，額外造成2傷害。"},res:{name:"偏移",desc:"技能後映璃本回合受傷-1。"}},
+  {id:"tianxun",name:"天訊",hp:7,atk:1,spd:4,passive:"回合開始時，選1角色SPD+1；若目標是敵方，其本回合受傷+1。",skill:{name:"規則補充",cost:2,cd:2,desc:"選1項：普攻傷害+1、技能傷害-1、我方全體SPD+1、最低SPD先行動。"},res:{name:"加碼",desc:"可選2項，但天訊本回合不能防禦。"}},
+  {id:"xuntian",name:"訊天",hp:7,atk:3,spd:2,passive:"攻擊被封印或混亂的敵人時，傷害+1。",skill:{name:"紅色爆點",cost:3,cd:2,desc:"對1敵造成5傷害；下回合使用技能費用+1。"},res:{name:"收束",desc:"技能後若目標HP為3以下，額外造成1傷害。"}},
+  {id:"zuozhe",name:"作者",hp:7,atk:2,spd:1,passive:"每場1次，即將被擊倒時，敵方全體受到1傷害；HP最低敵方額外1傷。若因此擊倒敵方角色，作者獲得1裁定。",skill:{name:"我加一條設定",cost:2,cd:2,desc:"選1敵擲硬幣；正面給予混亂，反面令其本回合與下回合ATK/SPD-1。"},res:{name:"重寫",desc:"技能後，若目標有混亂，額外給予觀測。"}}
+];
+
+const app = document.querySelector("#app");
+const draftSeq = ["p1","p2","p2","p1","p1","p2"];
+const initialRoom = new URLSearchParams(location.search).get("room")?.trim().toUpperCase() || "";
+let state = freshState();
+let dialog = null;
+let pollTimer = null;
+let net = { mode:"local", room:"", seat:"", rev:0, polling:false, status:initialRoom ? `收到房間邀請：${initialRoom}` : "離線" };
+
+function freshState() {
+  return {
+    screen:"menu", round:0, draftTurn:"p1", pickIndex:0, p1Draft:[], p2Draft:[],
+    players:null, queue:[], active:null, winner:null, logs:["歡迎來到 LuxFatum v4.1 連線版。"],
+    lastSkill:null, lastCopyableSkill:{p1:null,p2:null}, pendingSkill:null, pendingConfuseAttack:null,
+    lowestFirst:false, tianAtkBuff:false, tianSkillDebuff:false, lastHit:null, shakeStamp:0
+  };
+}
+const byId = id => CHARS.find(c => c.id === id);
+const other = p => p === "p1" ? "p2" : "p1";
+const clone = x => JSON.parse(JSON.stringify(x));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const coin = () => Math.random() >= .5;
+const alive = team => team.filter(c => c.hpNow > 0);
+const sideName = p => p === "p1" ? "P1" : "P2";
+function log(msg){ state.logs.push(msg); if(state.logs.length > 180) state.logs.shift(); }
+function canControl(side){ return net.mode === "local" || net.seat === side; }
+function activeF(){ return state.active ? state.players[state.active.side].team.find(c => c.id === state.active.id) : null; }
+function currentAtk(c){ return Math.max(0, c.atk + (c.flags.atkMod || 0)); }
+function currentSpd(c){ return Math.max(0, c.spd + (c.flags.spdMod || 0) - (c.statuses.includes(STATUS.SLOW) ? 1 : 0)); }
+function deadCount(side){ return 3 - alive(state.players[side].team).length; }
+function trailing(side){ return deadCount(side) > deadCount(other(side)); }
+
+function fighter(charId, owner) {
+  const c = byId(charId);
+  return {
+    ...clone(c), owner, maxHp:c.hp, hpNow:c.hp, cd:0, statuses:[],
+    flags:{ defended:false, immuneNextDebuff:false, passiveUsed:false, tookDamage:false, firstDamageReduced:false,
+      noAttack:false, noDefend:false, cannotAttackYingli:false, skillTargeted:false, atkMod:0, spdMod:0, damageTakenMod:0,
+      skillCostUp:0, noResNextSkill:false, nextRoundAtkMod:0, nextRoundSpdMod:0, buffDmgNext:0, records:0,
+      hengshuoGuarded:false, hengshuoGuardUsed:false, hengshuoRedirectUsed:false, huiyinUsed:false, leitingResCount:0, inoUsed:0 }
+  };
+}
+
+function stopPolling(){ net.polling = false; if(pollTimer){ clearTimeout(pollTimer); pollTimer = null; } }
+function startPolling(){ if(pollTimer) clearTimeout(pollTimer); net.polling = true; poll(); }
+function resetToMenu(){ stopPolling(); state=freshState(); net={mode:"local",room:"",seat:"",rev:0,polling:false,status:"待機"}; render(); }
+function startLocal(){ stopPolling(); state = freshState(); state.screen = "draft"; net = { mode:"local", room:"", seat:"", rev:0, polling:false, status:"本機雙人" }; render(); }
+async function createRoom(){
+  state = freshState(); state.screen = "draft";
+  const res = await api("/api/create", { state });
+  if(!res.ok) return alert(res.error || "建立失敗");
+  net = { mode:"online", room:res.room, seat:"p1", rev:res.rev, polling:true, status:"已建立房間" };
+  history.replaceState(null, "", location.pathname);
+  startPolling(); render();
+}
+async function joinRoom(roomOverride){
+  const room = (roomOverride || document.querySelector("#roomInput")?.value || "").trim().toUpperCase();
+  if(!room) return alert("請輸入房號");
+  const res = await api("/api/join", { room });
+  if(!res.ok) return alert(res.error || "加入失敗");
+  state = res.state || freshState();
+  net = { mode:"online", room:res.room, seat:"p2", rev:res.rev, polling:true, status:"已加入房間" };
+  history.replaceState(null, "", location.pathname);
+  startPolling(); render();
+}
+async function api(url, body){
+  try {
+    const res = await fetch(url, { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify(body || {}) });
+    return await res.json();
+  } catch(e) { return { ok:false, error:e.message }; }
+}
+async function sync(){
+  if(net.mode !== "online") return;
+  const res = await api("/api/state", { room:net.room, rev:net.rev, state });
+  if(res.ok){ net.rev = res.rev; state = res.state; net.status = "已同步"; }
+  else if(res.state){ net.rev = res.rev; state = res.state; net.status = "已拉回最新狀態"; }
+  else { net.status = res.error || "同步失敗"; }
+  render();
+}
+async function poll(){
+  if(net.mode !== "online" || !net.polling) return;
+  try {
+    const res = await fetch(`/api/state?room=${encodeURIComponent(net.room)}`);
+    const data = await res.json();
+    if(data.ok && data.rev > net.rev){ net.rev = data.rev; state = data.state; render(); }
+  } catch(e){ net.status = "同步中斷，稍後重試"; }
+  pollTimer = setTimeout(poll, 800);
+}
+async function forceSync(){
+  if(net.mode !== "online" || !net.room) return;
+  try {
+    const res = await fetch(`/api/state?room=${encodeURIComponent(net.room)}`);
+    const data = await res.json();
+    if(data.ok){ net.rev = data.rev; state = data.state; net.status = "已重新同步"; }
+    else net.status = data.error || "重新同步失敗";
+  } catch(e) {
+    net.status = "連線中斷，請再按一次重新同步";
+  }
+  render();
+}
+async function commit(){ render(); await sync(); }
+function inviteLink(){
+  if(!net.room) return location.href;
+  return `${location.origin}${location.pathname}?room=${encodeURIComponent(net.room)}`;
+}
+async function copyInvite(){
+  const text = `LuxFatum 對戰房號：${net.room}\n直接加入：${inviteLink()}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    net.status = "已複製邀請連結";
+  } catch(e) {
+    prompt("複製邀請資訊", text);
+  }
+  render();
+}
+async function copyRoom(){
+  try {
+    await navigator.clipboard.writeText(net.room);
+    net.status = "已複製房號";
+  } catch(e) {
+    prompt("複製房號", net.room);
+  }
+  render();
+}
+
+function pick(id){
+  if(state.screen !== "draft" || !canControl(state.draftTurn)) return;
+  if(state.p1Draft.includes(id) || state.p2Draft.includes(id)) return;
+  state[state.draftTurn + "Draft"].push(id);
+  log(`${sideName(state.draftTurn)} 選擇 ${byId(id).name}。`);
+  state.pickIndex += 1;
+  if(state.pickIndex >= 6) startBattle();
+  else state.draftTurn = draftSeq[state.pickIndex];
+  commit();
+}
+function startBattle(){
+  state.players = {
+    p1:{ energy:2, marks:0, judgementUsed:false, resUsed:0, openingDefenseUsed:false, team:state.p1Draft.map(id=>fighter(id,"p1")) },
+    p2:{ energy:2, marks:0, judgementUsed:false, resUsed:0, openingDefenseUsed:false, team:state.p2Draft.map(id=>fighter(id,"p2")) }
+  };
+  state.screen = "battle"; state.round = 0; nextRound();
+}
+function nextRound(){
+  state.round += 1; state.lowestFirst = false; state.tianAtkBuff = false; state.tianSkillDebuff = false;
+  for(const side of ["p1","p2"]){
+    const p = state.players[side];
+    p.energy = clamp(p.energy + 2, 0, 6); p.judgementUsed = false; p.resUsed = 0;
+    if(state.round === 1) p.openingDefenseUsed = false;
+    for(const c of alive(p.team)){
+      c.cd = Math.max(0, c.cd - 1);
+      c.statuses = c.statuses.filter(s => s !== STATUS.SLOW);
+      Object.assign(c.flags, { defended:false, immuneNextDebuff:false, tookDamage:false, firstDamageReduced:false, noDefend:false,
+        cannotAttackYingli:false, skillTargeted:false, atkMod:0, spdMod:0, damageTakenMod:0, hengshuoGuarded:false, hengshuoGuardUsed:false, hengshuoRedirectUsed:false });
+      c.flags.huiyinUsed = false;
+      if(c.flags.nextRoundAtkMod){ c.flags.atkMod += c.flags.nextRoundAtkMod; c.flags.nextRoundAtkMod = 0; }
+      if(c.flags.nextRoundSpdMod){ c.flags.spdMod += c.flags.nextRoundSpdMod; c.flags.nextRoundSpdMod = 0; }
+      if(c.flags.noAttack) c.flags.noAttack = false;
+      if(c.id === "aila" && c.statuses.includes(STATUS.SEAL)){ c.statuses = c.statuses.filter(s=>s!==STATUS.SEAL); log("艾菈移除自身封印。"); }
+    }
+  }
+  for(const side of ["p1","p2"]){
+    const p = state.players[side];
+    const deng = alive(p.team).find(c => c.id === "dengzhen" && c.cd === 0);
+    if(deng){ p.energy = clamp(p.energy + 1, 0, 6); log(`${sideName(side)} 因燈真獲得1能量。`); }
+    const tian = alive(p.team).find(c => c.id === "tianxun");
+    if(tian){
+      const targets = [...alive(p.team), ...alive(state.players[other(side)].team)];
+      const target = targets[Math.floor(Math.random() * targets.length)];
+      if(target){ target.flags.spdMod += 1; if(target.owner !== side) target.flags.damageTakenMod += 1; log(`天訊選中 ${target.name}：SPD+1${target.owner!==side ? "，受傷+1" : ""}。`); }
+    }
+  }
+  buildQueue(); state.active = state.queue[0] || null; log(`第 ${state.round} 回合開始。`);
+}
+function buildQueue(){
+  const list = [];
+  for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)) list.push({ side, id:c.id, spd:currentSpd(c), hp:c.hpNow });
+  list.sort((a,b) => state.lowestFirst ? a.spd-b.spd || a.hp-b.hp || a.id.localeCompare(b.id) : b.spd-a.spd || a.hp-b.hp || a.id.localeCompare(b.id));
+  state.queue = list;
+}
+function afterAction(){
+  const p1 = alive(state.players.p1.team).length, p2 = alive(state.players.p2.team).length;
+  if(!p1 && !p2) state.winner = "平手";
+  else if(!p1) state.winner = "P2";
+  else if(!p2) state.winner = "P1";
+  if(state.winner){ commit(); return; }
+  state.queue.shift();
+  state.queue = state.queue.filter(q => state.players[q.side].team.find(c => c.id === q.id && c.hpNow > 0));
+  if(!state.queue.length) endRound();
+  else state.active = state.queue[0];
+  commit();
+}
+function endRound(){
+  for(const side of ["p1","p2"]){
+    const p = state.players[side], bai = alive(p.team).find(c=>c.id==="baijian");
+    if(bai && p.team.some(c=>c.flags.tookDamage)){
+      const t = alive(p.team).sort((a,b)=>a.hpNow-b.hpNow)[0];
+      if(t) heal(t,1,"白繭照顧");
+    }
+  }
+  nextRound();
+}
+
+function heal(target, amount, source){
+  if(!target || target.hpNow <= 0) return;
+  const before = target.hpNow; target.hpNow = clamp(target.hpNow + amount, 0, target.maxHp);
+  log(`${source}：${target.name} 回復 ${target.hpNow - before} HP。`);
+}
+function removeNeg(target){
+  const s = target.statuses.find(x => NEG.includes(x));
+  if(s){ target.statuses = target.statuses.filter(x=>x!==s); log(`${target.name} 移除 ${s}。`); }
+  return s;
+}
+function addStatus(source, target, status){
+  if(!target || target.hpNow <= 0) return;
+  if(status === STATUS.OBSERVE && target.id === "yingli"){ log("映璃不能被觀測。"); return; }
+  if(NEG.includes(status)){
+    const hui = alive(state.players[target.owner].team).find(c => c.id === "huiyin" && c.id !== target.id && !c.flags.huiyinUsed);
+    if(hui){ hui.flags.huiyinUsed = true; target = hui; log("迴音將負面狀態轉移給自己。"); }
+  }
+  if(NEG.includes(status) && target.flags.immuneNextDebuff){ target.flags.immuneNextDebuff = false; log(`${target.name} 免疫 ${status}。`); return; }
+  if(!target.statuses.includes(status)){ target.statuses.push(status); log(`${source}給予 ${target.name} ${status}。`); }
+}
+function redirectTarget(target, dmg){
+  const team = state.players[target.owner].team;
+  const guard = team.find(c => c.id !== target.id && c.hpNow > 0 && c.statuses.includes(STATUS.GUARD));
+  if(guard && dmg > 0){ guard.statuses = guard.statuses.filter(s=>s!==STATUS.GUARD); log(`${guard.name} 以守護代替 ${target.name} 承受傷害。`); return guard; }
+  const heng = team.find(c => c.id === "hengshuo" && c.id !== target.id && c.hpNow > 0 && !c.flags.hengshuoRedirectUsed);
+  if(heng && dmg > 0){ heng.flags.hengshuoRedirectUsed = true; log(`衡朔代替 ${target.name} 承受傷害。`); return heng; }
+  return target;
+}
+function damage(source, target, amount, opts={}){
+  if(!target || target.hpNow <= 0) return 0;
+  let dmg = amount; const owner = target.owner; const label = opts.label || source?.name || "效果";
+  if(target.statuses.includes(STATUS.OBSERVE) && target.id !== "yingli"){ dmg += 1; target.statuses = target.statuses.filter(s=>s!==STATUS.OBSERVE); log(`${target.name} 觀測觸發，傷害+1。`); }
+  dmg += target.flags.damageTakenMod || 0;
+  if(target.flags.hengshuoGuarded && !target.flags.hengshuoGuardUsed){ target.flags.hengshuoGuardUsed = true; const h = state.players[owner].team.find(c=>c.id==="hengshuo"&&c.hpNow>0); if(h) heal(h,1,"衡朔近身護衛"); }
+  if(opts.skill && state.tianSkillDebuff) dmg -= 1;
+  if(target.id === "youming" && !target.flags.firstDamageReduced){ target.flags.firstDamageReduced = true; dmg -= 1; log("幽冥第一次受傷-1。"); }
+  if(opts.skill && target.id === "aila" && !target.statuses.some(s=>NEG.includes(s))) dmg -= 1;
+  if(opts.skill && target.id === "yingli" && !target.flags.skillTargeted){ target.flags.skillTargeted = true; dmg -= 2; }
+  const wei = alive(state.players[owner].team).find(c=>c.id==="weixiang");
+  if(wei && amount >= 3 && !wei.flags.firstDamageReduced){ wei.flags.firstDamageReduced = true; dmg -= 1; log("未響使首次3以上傷害-1。"); }
+  if(target.flags.defended) dmg -= 2;
+  dmg = Math.max(1, dmg);
+  const actual = redirectTarget(target, dmg);
+  const p = state.players[actual.owner];
+  if(state.round === 1 && !p.openingDefenseUsed){ p.openingDefenseUsed = true; dmg = Math.max(1, dmg - 1); log("開局防線：首次受傷-1。"); }
+  const before = actual.hpNow; actual.hpNow = Math.max(0, actual.hpNow - dmg); actual.flags.tookDamage = true;
+  state.lastHit = { owner:actual.owner, id:actual.id, stamp:Date.now() };
+  state.shakeStamp = Date.now();
+  log(`${label} 對 ${actual.name} 造成 ${before - actual.hpNow} 傷害。`);
+  if(actual.hpNow <= 0) knockout(actual, source);
+  return before - actual.hpNow;
+}
+function knockout(c, source){
+  const p = state.players[c.owner];
+  if(c.id === "ningyao" && !c.flags.passiveUsed && p.marks > 0){ c.flags.passiveUsed = true; p.marks -= 1; c.hpNow = 1; log("寧曜消耗1裁定保留1HP。"); return; }
+  if(c.id === "baidengling" && !c.flags.passiveUsed){ c.flags.passiveUsed = true; c.flags.noAttack = true; c.hpNow = 1; log("白燈澪保留1HP，下回合不能攻擊。"); return; }
+  if(c.id === "xiaomo" && !c.flags.passiveUsed){ c.flags.passiveUsed = true; if(coin()){ c.hpNow = 1; log("小莫硬幣正面，保留1HP。"); return; } p.marks = clamp(p.marks+1,0,3); log("小莫反面，獲得1裁定。"); }
+  if(c.id === "zuozhe" && !c.flags.passiveUsed){
+    c.flags.passiveUsed = true; const enemies = alive(state.players[other(c.owner)].team); const min = Math.min(...enemies.map(e=>e.hpNow));
+    for(const e of enemies) damage(c, e, e.hpNow === min ? 2 : 1, { label:"作者自爆" });
+  }
+  const lei = alive(p.team).find(x=>x.id==="leiyouxi"); if(lei) lei.flags.buffDmgNext += 1;
+  p.marks = clamp(p.marks+1,0,3); log(`${c.name} 被擊倒，${sideName(c.owner)} 獲得1裁定。`);
+  if(source?.id === "zuozhe" && source.owner !== c.owner){ state.players[source.owner].marks = clamp(state.players[source.owner].marks+1,0,3); log("作者自爆擊倒敵方，獲得1裁定。"); }
+}
+
+function requestAttack(){
+  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.flags.noAttack || state.pendingConfuseAttack) return;
+  if(actor.statuses.includes(STATUS.CONFUSE)){
+    state.pendingConfuseAttack = { actorSide:actor.owner, actorId:actor.id };
+    log(`${actor.name} 因混亂，攻擊目標改由對方指定。`);
+    closeDialog(); commit(); return;
+  }
+  openDialog("attack");
+}
+function performAttack(actor, target, confused=false){
+  if(!actor || !target || actor.flags.noAttack) return false;
+  if(actor.flags.cannotAttackYingli && target.id === "yingli"){ alert("不能指定映璃"); return false; }
+  if(confused || actor.statuses.includes(STATUS.CONFUSE)){
+    actor.statuses = actor.statuses.filter(s=>s!==STATUS.CONFUSE);
+    log(`${actor.name} 混亂發作，攻擊了 ${target.name}。`);
+  }
+  let dmg = currentAtk(actor);
+  if(actor.id === "leiting" && target.hpNow > actor.hpNow) dmg += 1;
+  if(actor.id === "xuntian" && (target.statuses.includes(STATUS.SEAL) || target.statuses.includes(STATUS.CONFUSE))) dmg += 1;
+  if(actor.flags.buffDmgNext){ dmg += actor.flags.buffDmgNext; actor.flags.buffDmgNext = 0; }
+  if(state.tianAtkBuff) dmg += 1;
+  damage(actor, target, dmg, { label:`${actor.name}普攻` });
+  return true;
+}
+function attack(targetKey){
+  const actor = activeF(); if(!actor || !canControl(actor.owner)) return;
+  let target = parseTarget(targetKey); if(!target) return;
+  if(!performAttack(actor, target, false)) return;
+  clearSeal(actor); closeDialog(); afterAction();
+}
+function decideConfuseAttack(targetKey){
+  const pending = state.pendingConfuseAttack;
+  if(!pending || !canControl(other(pending.actorSide))) return;
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId && c.hpNow>0);
+  const target = parseTarget(targetKey);
+  if(!actor || !target) return;
+  if(actor.flags.cannotAttackYingli && target.id === "yingli"){ alert("不能指定映璃"); return; }
+  state.pendingConfuseAttack = null;
+  if(!performAttack(actor, target, true)) return;
+  clearSeal(actor); closeDialog(); afterAction();
+}
+function defend(){
+  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.flags.noDefend) return;
+  actor.flags.defended = true; actor.flags.immuneNextDebuff = true; log(`${actor.name} 防禦。`);
+  clearSeal(actor); closeDialog(); afterAction();
+}
+function rest(){
+  const actor = activeF(); if(!actor || !canControl(actor.owner)) return;
+  heal(actor,1,"休息"); removeNeg(actor); closeDialog(); afterAction();
+}
+function clearSeal(actor){ if(actor.statuses.includes(STATUS.SEAL)){ actor.statuses = actor.statuses.filter(s=>s!==STATUS.SEAL); log(`${actor.name} 行動結束，封印解除。`); } }
+function surrender(side){
+  if(state.screen !== "battle" || state.winner) return;
+  if(!canControl(side)) return;
+  const sideLabel = sideName(side);
+  if(!confirm(`${sideLabel} 確定要投降嗎？對方會立即獲勝。`)) return;
+  state.pendingSkill = null;
+  state.pendingConfuseAttack = null;
+  dialog = null;
+  state.winner = sideName(other(side));
+  log(`${sideLabel} 投降，${state.winner} 獲勝。`);
+  commit();
+}
+function skillCost(actor, res){ let cost = actor.skill.cost + (actor.flags.skillCostUp || 0); if(res && actor.skill.cost === 1) cost += 1; if(res && actor.id === "huiyin") cost -= 1; return Math.max(0,cost); }
+function enemyInoFor(actor){
+  return alive(state.players[other(actor.owner)].team).find(c=>c.id==="ino" && c.flags.inoUsed < 2);
+}
+function tianChoicesOk(actor, res, choices){
+  if(actor.id !== "tianxun") return true;
+  const max = res ? 2 : 1;
+  if(!choices?.length){ alert("天訊至少要選 1 項規則補充。"); return false; }
+  if(choices.length > max){ alert(`天訊${res ? "使用共鳴" : "未使用共鳴"}時最多只能選 ${max} 項。`); return false; }
+  return true;
+}
+
+function useSkill(targetKey, opts={}){
+  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.cd > 0 || actor.statuses.includes(STATUS.SEAL)) return;
+  const p = state.players[actor.owner]; let res = !!opts.res;
+  if(res && p.resUsed >= 2) return alert("本回合共鳴已達上限");
+  if(res && !alive(p.team).some(c=>c.id!==actor.id)) return alert("需要至少1名其他我方存活才能共鳴");
+  if(actor.flags.noResNextSkill && res){ actor.flags.noResNextSkill = false; res = false; log("裁定封殺：本次技能不能共鳴。"); }
+  opts = {...opts, res};
+  if(!tianChoicesOk(actor, res, opts.choices || [])) return;
+  const enemyIno = enemyInoFor(actor);
+  if(enemyIno && opts.inoDecision === undefined){
+    state.pendingSkill = { actorSide: actor.owner, actorId: actor.id, targetKey, opts };
+    log(`${enemyIno.name} 可以選擇是否干涉 ${actor.name} 的技能。`);
+    closeDialog();
+    commit();
+    return;
+  }
+  executeSkill(targetKey, opts);
+}
+
+function decideIno(useInterference){
+  const pending = state.pendingSkill;
+  if(!pending || !canControl(other(pending.actorSide))) return;
+  state.pendingSkill = null;
+  executeSkill(pending.targetKey, {...pending.opts, actorId: pending.actorId, inoDecision: !!useInterference});
+}
+
+function executeSkill(targetKey, opts={}){
+  const actor = activeF(); if(!actor || actor.id !== opts.actorId && opts.actorId) return;
+  const p = state.players[actor.owner]; let res = !!opts.res;
+  let cost = skillCost(actor, res);
+  const enemyIno = enemyInoFor(actor);
+  let inoApplied = false;
+  if(opts.inoDecision && enemyIno){ cost += 1; enemyIno.flags.inoUsed += 1; inoApplied = true; log(`伊諾選擇干涉：${actor.name} 技能費用 +1。`); }
+  else if(enemyIno){ log("伊諾選擇不干涉。"); }
+  if(p.energy < cost){
+    log(`${actor.name} 因能量不足，技能發動失敗。`);
+    closeDialog(); afterAction(); return;
+  }
+  p.energy -= cost; actor.cd = actor.skill.cd; actor.flags.skillCostUp = 0; if(res) p.resUsed += 1;
+  const ok = resolveSkill(actor, parseTarget(targetKey), res, opts);
+  if(!ok){
+    p.energy = clamp(p.energy + cost, 0, 6);
+    actor.cd = 0;
+    if(res) p.resUsed = Math.max(0, p.resUsed - 1);
+    if(inoApplied) enemyIno.flags.inoUsed = Math.max(0, enemyIno.flags.inoUsed - 1);
+    log(`${actor.name} 技能目標或條件不合法，未消耗行動。`);
+    closeDialog(); commit(); return;
+  }
+  if(ok && opts.inoDecision && enemyIno){ state.players[enemyIno.owner].energy = clamp(state.players[enemyIno.owner].energy+1,0,6); log("伊諾干涉成功後獲得1能量。"); }
+  if(ok){ for(const side of ["p1","p2"]){ const y = alive(state.players[side].team).find(c=>c.id==="yiaiqian"); if(y) y.flags.records = clamp((y.flags.records||0)+1,0,3); } }
+  closeDialog(); afterAction();
+}
+function resolveSkill(a,t,res,opts){
+  const name = `${a.name}「${a.skill.name}」`; let record = null;
+  switch(a.id){
+    case "ningyao": damage(a,t,3,{skill:true,label:name}); addStatus(name,t,STATUS.SEAL); if(res) heal(a,1,a.res.name); record={kind:"damage",amount:3}; break;
+    case "hengshuo": if(!t||t.owner!==a.owner)return false; t.flags.damageTakenMod-=2; t.flags.hengshuoGuarded=true; t.statuses=t.statuses.filter(s=>s!==STATUS.OBSERVE); if(res)addStatus(a.res.name,t,STATUS.GUARD); break;
+    case "youming": damage(a,t,2,{skill:true,label:name}); addStatus(name,t,STATUS.SLOW); if(res)t.flags.atkMod-=1; record={kind:"damage",amount:2}; break;
+    case "leiting": damage(a,t,4,{skill:true,label:name}); if(res){ if(a.flags.leitingResCount<2){ a.flags.leitingResCount+=1; addStatus(a.res.name,t,STATUS.OBSERVE); } } record={kind:"damage",amount:4}; break;
+    case "baijian": if(!t||t.owner!==a.owner)return false; { const min=Math.min(...alive(state.players[a.owner].team).map(c=>c.hpNow)); heal(t,t.hpNow===min?4:3,name); removeNeg(t); } if(res)addStatus(a.res.name,t,STATUS.GUARD); record={kind:"heal",amount:3}; break;
+    case "dengzhen": if(!t)return false; t.flags.spdMod += opts.mode==="down"?-2:2; if(t.owner===a.owner)heal(t,1,name); if(res)t.flags.damageTakenMod-=1; break;
+    case "ino": if(t.statuses.includes(STATUS.OBSERVE)){ t.statuses=t.statuses.filter(s=>s!==STATUS.OBSERVE); damage(a,t,3,{skill:true,label:name}); record={kind:"damage",amount:3}; } else addStatus(name,t,STATUS.OBSERVE); if(res)t.flags.damageTakenMod+=1; break;
+    case "aila": addStatus(name,t,STATUS.SEAL); if(t.statuses.includes(STATUS.OBSERVE)){ damage(a,t,2,{skill:true,label:name}); record={kind:"damage",amount:2}; } if(res)state.players[a.owner].energy=clamp(state.players[a.owner].energy+1,0,6); break;
+    case "leiyouxi": damage(a,t,res?4:3,{skill:true,label:name}); if(trailing(a.owner))addStatus(name,t,STATUS.CONFUSE); record={kind:"damage",amount:3}; break;
+    case "baidengling": for(const ally of alive(state.players[a.owner].team))heal(ally,1,name); { const low=alive(state.players[a.owner].team).sort((x,y)=>x.hpNow-y.hpNow)[0]; if(low)heal(low,1,"希望微光"); if(res&&low)removeNeg(low); } if(trailing(a.owner))state.players[a.owner].marks=clamp(state.players[a.owner].marks+1,0,3); record={kind:"heal",amount:1}; break;
+    case "yiaiqian": if(!state.lastSkill || (a.flags.records||0)<1)return false; a.flags.records-=1; if(state.lastSkill.kind==="damage")damage(a,t,state.lastSkill.amount,{skill:true,label:name}); else heal(t,state.lastSkill.amount,name); if(res)state.players[a.owner].energy=clamp(state.players[a.owner].energy+1,0,6); break;
+    case "weixiang": if(!t||t.owner!==a.owner)return false; addStatus(name,t,STATUS.GUARD); heal(t,1,name); if(res)t.flags.damageTakenMod-=1; record={kind:"heal",amount:1}; break;
+    case "xiaomo": { const heads=coin(); if(heads){ damage(a,t,4,{skill:true,label:name}); record={kind:"damage",amount:4}; } else { addStatus(name,t,STATUS.CONFUSE); damage(a,a,1,{skill:true,label:"小莫反噬"}); if(res)addStatus(a.res.name,t,STATUS.SLOW); } break; }
+    case "huiyin": {
+      const copy = state.lastCopyableSkill?.[a.owner];
+      if(copy){
+        if(copy.kind==="damage") damage(a,t,copy.amount,{skill:true,label:`${name} 複製 ${copy.name}`});
+        else heal(t,copy.amount,`${name} 複製 ${copy.name}`);
+      } else {
+        if(!t || t.owner===a.owner) return false;
+        damage(a,t,2,{skill:true,label:name});
+        record={kind:"damage",amount:2,name:a.skill.name};
+      }
+      break;
+    }
+    case "yingli": { const had=t.statuses.includes(STATUS.CONFUSE); addStatus(name,t,STATUS.CONFUSE); t.flags.cannotAttackYingli=true; if(had)damage(a,t,2,{skill:true,label:name}); if(res)a.flags.damageTakenMod-=1; break; }
+    case "tianxun": { const choices=opts.choices||[]; const selected=choices.slice(0,res?2:1); if(!selected.length)return false; for(const ch of selected){ if(ch==="atk")state.tianAtkBuff=true; if(ch==="skill")state.tianSkillDebuff=true; if(ch==="spd")for(const ally of alive(state.players[a.owner].team))ally.flags.spdMod+=1; if(ch==="low")state.lowestFirst=true; } if(res)a.flags.noDefend=true; log(`${name}套用 ${selected.join("、")}。`); break; }
+    case "xuntian": damage(a,t,5,{skill:true,label:name}); a.flags.skillCostUp+=1; if(res&&t.hpNow>0&&t.hpNow<=3)damage(a,t,1,{skill:true,label:a.res.name}); record={kind:"damage",amount:5}; break;
+    case "zuozhe": if(!t||t.owner===a.owner)return false; if(coin())addStatus(name,t,STATUS.CONFUSE); else{ t.flags.atkMod-=1; t.flags.spdMod-=1; t.flags.nextRoundAtkMod-=1; t.flags.nextRoundSpdMod-=1; log(`${t.name} 本回合與下回合 ATK/SPD-1。`); } if(res&&t.statuses.includes(STATUS.CONFUSE))addStatus(a.res.name,t,STATUS.OBSERVE); break;
+  }
+  if(record){
+    state.lastSkill=record;
+    if(!["ningyao","zuozhe","huiyin"].includes(a.id)){
+      if(!state.lastCopyableSkill) state.lastCopyableSkill = {p1:null,p2:null};
+      state.lastCopyableSkill[a.owner] = {...record, name:a.skill.name};
+    }
+  }
+  return true;
+}
+function judgement(type,targetKey){
+  const actor=activeF(); if(!actor||!canControl(actor.owner))return; const p=state.players[actor.owner]; if(p.judgementUsed)return;
+  const cost={atk:1,def:1,spd:1,heal:2,seal:3}[type]; if(p.marks<cost)return; const t=parseTarget(targetKey);
+  if(["spd","heal"].includes(type)&&(!t||t.owner!==actor.owner))return; if(type==="seal"&&(!t||t.owner===actor.owner))return;
+  p.marks-=cost; p.judgementUsed=true;
+  if(type==="atk"){ actor.flags.atkMod+=1; log("裁定：本次/本回合傷害+1。"); }
+  if(type==="def"){ actor.flags.damageTakenMod-=1; log("裁定：受傷-1。"); }
+  if(type==="spd"){ t.flags.spdMod+=1; log(`裁定：${t.name} SPD+1。`); }
+  if(type==="heal"){ t.cd=Math.max(0,t.cd-1); heal(t,1,"裁定"); }
+  if(type==="seal"){ t.flags.noResNextSkill=true; addStatus("裁定封殺",t,STATUS.SLOW); }
+  closeDialog(); commit();
+}
+function parseTarget(key){ if(!key)return null; const [side,id]=key.split(":"); return state.players[side].team.find(c=>c.id===id); }
+
+function openDialog(type){ dialog = type; render(); }
+function closeDialog(){ dialog = null; render(); }
+
+function targetList(filter){
+  const actor=activeF(); const out=[];
+  for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)){
+    if(filter==="ally" && side!==actor.owner)continue; if(filter==="enemy" && side===actor.owner)continue;
+    out.push({key:`${side}:${c.id}`, side, c});
+  }
+  return out;
+}
+function skillFilter(actor){
+  if(["hengshuo","baijian","weixiang"].includes(actor.id))return"ally";
+  if(actor.id==="zuozhe")return"enemy";
+  if(["dengzhen","yiaiqian","huiyin"].includes(actor.id))return"all";
+  if(["baidengling","tianxun"].includes(actor.id))return"none";
+  return"enemy";
+}
+
+function render(){
+  const shake = state.shakeStamp && Date.now() - state.shakeStamp < 600 ? "shake" : "";
+  app.innerHTML = `<div class="app ${shake}">${renderTop()}<main class="wrap">${renderRoomBanner()}${renderMain()}</main>${renderDialog()}</div>`;
+}
+function renderTop(){
+  const meta = net.mode==="online" ? `線上 ${net.room} / ${net.seat.toUpperCase()} / ${net.status}` : net.status;
+  return `<header class="top"><div class="brand"><h1>LuxFatum 裁定對決 v4.1</h1><p>${meta || "本機"}</p></div><div class="top-actions"><button onclick="resetToMenu()">回主選單</button></div></header>`;
+}
+function renderMain(){
+  if(state.screen==="menu")return renderMenu();
+  if(state.screen==="draft")return renderDraft();
+  if(state.screen==="battle")return renderBattle();
+  return "";
+}
+function renderRoomBanner(){
+  if(net.mode !== "online" || !net.room) return "";
+  return `<section class="room-banner">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="subtle">線上房間 · 你的座位 ${net.seat.toUpperCase()}</div>
+        <div class="room-code">${net.room}</div>
+      </div>
+      <div class="row">
+        <button onclick="copyRoom()">複製房號</button>
+        <button onclick="copyInvite()">複製邀請連結</button>
+        <button onclick="forceSync()">重新同步</button>
+      </div>
+    </div>
+    <div class="invite-link">${inviteLink()}</div>
+  </section>`;
+}
+function renderMenu(){
+  const invite = initialRoom && net.mode === "local" ? `<div class="card"><h2>加入邀請房間</h2><p>偵測到邀請房號：</p><div class="room-code">${initialRoom}</div><button onclick="joinRoom('${initialRoom}')">加入這個房間</button></div>` : "";
+  return `<section class="grid menu">
+    ${invite}
+    <div class="card"><h2>本機雙人</h2><p>同一台電腦輪流操作 P1 / P2。</p><button onclick="startLocal()">本機雙人遊玩</button></div>
+    <div class="card"><h2>線上開房</h2><p>建立房間後會顯示大房號與邀請連結。把連結傳給 P2，P2 打開後可直接加入。</p><button onclick="createRoom()">建立線上房間</button></div>
+    <div class="card"><h2>輸入房號加入</h2><p>如果對方只傳房號，請在這裡輸入。</p><div class="row"><input id="roomInput" value="${initialRoom}" placeholder="例如 ABC23"><button onclick="joinRoom()">加入</button></div></div>
+  </section>`;
+}
+function renderDraft(){
+  const picked = new Set([...state.p1Draft,...state.p2Draft]);
+  const lock = net.mode==="online" && !canControl(state.draftTurn);
+  return `<div class="card"><h2>選角階段：輪到 <span class="${state.draftTurn}">${sideName(state.draftTurn)}</span></h2><p class="notice">${lock ? "等待對方選角..." : "選擇一名角色"}</p><div class="row"><span class="pill">P1: ${state.p1Draft.map(id=>byId(id).name).join("、")||"尚未選"}</span><span class="pill">P2: ${state.p2Draft.map(id=>byId(id).name).join("、")||"尚未選"}</span></div></div>
+  <section class="draft">${CHARS.map(c=>`<button class="draft-card ${picked.has(c.id)?"selected":""}" onclick="pick('${c.id}')" ${picked.has(c.id)||lock?"disabled":""}><h3>${c.name}</h3><div class="stats"><span class="pill">HP ${c.hp}</span><span class="pill">ATK ${c.atk}</span><span class="pill">SPD ${c.spd}</span></div><p class="desc"><b>${c.skill.name}</b>：${c.skill.desc}</p></button>`).join("")}</section>`;
+}
+function renderBattle(){
+  if(state.winner)return `<div class="card"><h2>遊戲結束：${state.winner}</h2><button onclick="startLocal()">重新開始本機遊戲</button></div>`;
+  return `<section class="battle">${renderTeam("p1")}<div class="center">${renderQueue()}${renderSurrenderPanel()}${renderPendingIno()}${renderPendingConfuse()}${renderActions()}${renderLog()}</div>${renderTeam("p2")}</section>`;
+}
+function renderTeam(side){
+  const p=state.players[side];
+  return `<section class="team"><div class="team-head"><h2 class="${side}">${sideName(side)}</h2><div class="row"><span class="pill">能量 ${p.energy}/6</span><span class="pill">裁定 ${p.marks}/3</span><span class="pill">共鳴 ${p.resUsed}/2</span></div></div>${p.team.map(renderFighter).join("")}</section>`;
+}
+function renderFighter(c){
+  const active = state.active?.side===c.owner && state.active?.id===c.id;
+  const hit = state.lastHit?.owner===c.owner && state.lastHit?.id===c.id && Date.now() - state.lastHit.stamp < 800;
+  return `<article class="fighter ${active?"active":""} ${c.hpNow<=0?"dead":""} ${hit?"hit":""}"><h3><span>${c.name}</span><span class="pill">CD ${c.cd}</span></h3><div class="hpbar"><div class="hpfill" style="width:${(c.hpNow/c.maxHp)*100}%"></div></div><div class="stats"><span class="pill">HP ${c.hpNow}/${c.maxHp}</span><span class="pill">ATK ${currentAtk(c)}</span><span class="pill">SPD ${currentSpd(c)}</span><span class="pill">技能耗 ${c.skill.cost} / CD ${c.skill.cd}</span>${c.flags.records?`<span class="pill">紀錄 ${c.flags.records}</span>`:""}</div><div class="statuses">${c.flags.defended?`<span class="pill good">防禦</span>`:""}${c.flags.noAttack?`<span class="pill bad">禁攻</span>`:""}${c.statuses.map(s=>`<span class="pill">${s}</span>`).join("")}</div><p class="desc"><b>${c.skill.name}</b>：${c.skill.desc}</p><p class="desc"><b>共鳴 ${c.res.name}</b>：${c.res.desc}</p><p class="desc"><b>被動</b>：${c.passive}</p></article>`;
+}
+function renderQueue(){
+  return `<div class="card"><h2>行動順序</h2><div class="row">${state.queue.map((q,i)=>`<span class="pill ${q.side}">${i===0?"▶ ":""}${sideName(q.side)} ${byId(q.id).name}</span>`).join("")}</div></div>`;
+}
+function renderActions(){
+  const a=activeF(); if(!a)return "";
+  if(state.pendingSkill) return `<section class="actions"><h2>等待伊諾干涉決定</h2><p class="notice">對方正在選擇是否讓技能費用 +1。</p></section>`;
+  if(state.pendingConfuseAttack) return `<section class="actions"><h2>等待混亂目標</h2><p class="notice">對方正在指定混亂攻擊的目標。</p></section>`;
+  const own=canControl(a.owner); const canSkill=a.cd<=0&&!a.statuses.includes(STATUS.SEAL)&&state.players[a.owner].energy>=skillCost(a,false);
+  const skillHint = a.statuses.includes(STATUS.SEAL) ? "封印中" : (a.cd>0 ? `冷卻 ${a.cd}` : `耗 ${skillCost(a,false)}`);
+  return `<section class="actions"><h2>輪到 <span class="${a.owner}">${sideName(a.owner)} ${a.name}</span></h2>${own?"":`<p class="notice">等待對方操作...</p>`}<div class="action-grid"><button onclick="requestAttack()" ${!own||a.flags.noAttack?"disabled":""}>攻擊</button><button onclick="openDialog('skill')" ${!own||!canSkill?"disabled":""}>技能<br><span class="subtle">${skillHint}</span></button><button onclick="defend()" ${!own||a.flags.noDefend?"disabled":""}>防禦</button><button onclick="rest()" ${!own?"disabled":""}>休息</button><button onclick="openDialog('judgement')" ${!own||state.players[a.owner].judgementUsed||state.players[a.owner].marks<1?"disabled":""}>裁定</button></div></section>`;
+}
+function renderSurrenderPanel(){
+  if(net.mode === "online"){
+    return `<section class="actions"><h2>對戰控制</h2><button class="bad" onclick="surrender('${net.seat}')" ${!net.seat ? "disabled" : ""}>${net.seat.toUpperCase()} 投降</button></section>`;
+  }
+  const activeSide = state.active?.side || "p1";
+  return `<section class="actions"><h2>對戰控制</h2><div class="action-grid"><button class="bad" onclick="surrender('${activeSide}')">當前方 ${sideName(activeSide)} 投降</button><button class="bad" onclick="surrender('${other(activeSide)}')">另一方 ${sideName(other(activeSide))} 投降</button></div></section>`;
+}
+function renderPendingIno(){
+  const pending = state.pendingSkill;
+  if(!pending) return "";
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId);
+  const defender = other(pending.actorSide);
+  const ino = alive(state.players[defender].team).find(c=>c.id==="ino");
+  const canDecide = canControl(defender);
+  return `<section class="actions pending">
+    <h2>伊諾干涉判定</h2>
+    <p>${sideName(pending.actorSide)} 的 ${actor?.name || "角色"} 正要施放技能。</p>
+    <p class="desc">伊諾可使該技能費用 +1；若技能仍成功結算，伊諾方獲得 1 能量。</p>
+    ${canDecide ? `<div class="action-grid"><button onclick="decideIno(true)">干涉：費用 +1</button><button onclick="decideIno(false)">不干涉</button></div>` : `<p class="notice">等待 ${sideName(defender)} 操作 ${ino?.name || "伊諾"}。</p>`}
+  </section>`;
+}
+function renderPendingConfuse(){
+  const pending = state.pendingConfuseAttack;
+  if(!pending) return "";
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId);
+  const defender = other(pending.actorSide);
+  const canDecide = canControl(defender);
+  const targets = [];
+  for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)){
+    const blocked = actor?.flags.cannotAttackYingli && c.id === "yingli";
+    if(!blocked) targets.push({key:`${side}:${c.id}`, side, c});
+  }
+  return `<section class="actions pending">
+    <h2>混亂攻擊目標</h2>
+    <p>${actor?.name || "角色"} 的攻擊由 ${sideName(defender)} 指定目標。</p>
+    ${canDecide ? `<div class="choice-grid">${targets.map(t=>`<button class="choice" onclick="decideConfuseAttack('${t.key}')">${sideName(t.side)} ${t.c.name}<br><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span></button>`).join("")}</div>` : `<p class="notice">等待 ${sideName(defender)} 選擇攻擊目標。</p>`}
+  </section>`;
+}
+function renderLog(){
+  return `<section class="log"><h2>戰鬥紀錄</h2>${state.logs.slice().reverse().map(x=>`<div class="log-line ${/造成|擊倒|混亂發作/.test(x) ? "impact" : ""}">${x}</div>`).join("")}</section>`;
+}
+function renderDialog(){
+  if(!dialog)return""; const a=activeF(); if(!a)return"";
+  if(dialog==="attack"){
+    const filter=a.statuses.includes(STATUS.CONFUSE)?"all":"enemy";
+    return modal("選擇攻擊目標", `<div class="choice-grid">${targetList(filter).map(t=>`<button class="choice" onclick="attack('${t.key}')">${sideName(t.side)} ${t.c.name}<br><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span></button>`).join("")}</div>`);
+  }
+  if(dialog==="skill"){
+    const filter=skillFilter(a); const resDisabled=state.players[a.owner].resUsed>=2 || !alive(state.players[a.owner].team).some(c=>c.id!==a.id);
+    const resCost = skillCost(a, true);
+    const resReason = resDisabled
+      ? (state.players[a.owner].resUsed>=2 ? "本回合共鳴次數已達上限。" : "需要至少1名其他我方角色存活。")
+      : `勾選後技能總費用：${resCost} 能量。`;
+    const common = `<div class="online">
+      <p class="desc"><b>技能消耗</b>：${skillCost(a,false)} 能量｜<b>冷卻</b>：${a.skill.cd}｜目前能量：${state.players[a.owner].energy}/6</p>
+      <label class="row"><input id="resBox" type="checkbox" ${resDisabled?"disabled":""} style="width:auto"> 使用共鳴：${a.res.name}</label>
+      <p class="desc"><b>${a.res.name}</b>：${a.res.desc}</p>
+      <p class="desc">${resReason}</p>
+    </div>`;
+    const resExpr = "document.querySelector('#resBox').checked";
+    if(a.id==="tianxun")return modal(a.skill.name, `${common}<p class="desc">未使用共鳴最多選 1 項；使用共鳴最多選 2 項。</p><div class="choice-grid">${["atk:普攻傷害+1","skill:技能傷害-1","spd:我方全體SPD+1","low:最低SPD先行動"].map(s=>{const [v,l]=s.split(":");return`<label class="choice"><input name="tian" value="${v}" type="checkbox"> ${l}</label>`}).join("")}</div><button onclick="useSkill(null,{res:${resExpr},choices:[...document.querySelectorAll('input[name=tian]:checked')].map(i=>i.value)})">施放</button>`);
+    if(a.id==="baidengling")return modal(a.skill.name, `${common}<button onclick="useSkill(null,{res:${resExpr}})">施放希望微光</button>`);
+    if(a.id==="dengzhen")return modal(a.skill.name, `${common}<div class="choice-grid">${targetList("all").map(t=>`<div class="choice"><b>${sideName(t.side)} ${t.c.name}</b><div class="row"><button onclick="useSkill('${t.key}',{mode:'up',res:${resExpr}})">SPD +2</button><button onclick="useSkill('${t.key}',{mode:'down',res:${resExpr}})">SPD -2</button></div></div>`).join("")}</div>`);
+    return modal(a.skill.name, `${common}<p class="desc">${a.skill.desc}</p><div class="choice-grid">${targetList(filter).map(t=>`<button class="choice" onclick="useSkill('${t.key}',{res:${resExpr}})">${sideName(t.side)} ${t.c.name}<br><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span></button>`).join("") || "<p>不需目標</p>"}</div>`);
+  }
+  if(dialog==="judgement"){
+    return modal("裁定", `<div class="choice-grid"><button onclick="judgement('atk')">1 裁定：傷害+1</button><button onclick="judgement('def')">1 裁定：受傷-1</button>${targetList("ally").map(t=>`<button onclick="judgement('spd','${t.key}')">1 裁定：${t.c.name} SPD+1</button><button onclick="judgement('heal','${t.key}')">2 裁定：${t.c.name} 冷卻-1並回1HP</button>`).join("")}${targetList("enemy").map(t=>`<button onclick="judgement('seal','${t.key}')">3 裁定：封殺 ${t.c.name} 共鳴並遲緩</button>`).join("")}</div>`);
+  }
+  return"";
+}
+function modal(title, body){ return `<div class="modal" onclick="if(event.target===this)closeDialog()"><section class="dialog"><div class="row" style="justify-content:space-between"><h2>${title}</h2><button onclick="closeDialog()">關閉</button></div>${body}</section></div>`; }
+render();
+</script>
+</body>
+</html>

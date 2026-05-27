@@ -1,4 +1,4 @@
-LuxFatum Windows 下載版 v4.2.1
+LuxFatum Windows 下載版 v4.2.2
 
 啟動方式
 1. 解壓縮整個 zip。

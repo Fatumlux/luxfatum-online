@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LuxFatum 裁定對決 v4.2.1 桌面連線版</title>
+  <title>LuxFatum 裁定對決 v4.2.2 桌面連線版</title>
   <style>
     :root {
       color-scheme: dark;
@@ -441,7 +441,7 @@
 <div id="app"></div>
 <script>
 const STATUS = { SEAL:"封印", OBSERVE:"觀測", CONFUSE:"混亂", SLOW:"遲緩", GUARD:"守護" };
-const APP_VERSION = "4.2.1";
+const APP_VERSION = "4.2.2";
 const ONLINE_URL = "https://luxfatum-online.onrender.com";
 function apiUrl(path){
   return location.protocol === "file:" && path.startsWith("/api/") ? `${ONLINE_URL}${path}` : path;
@@ -493,7 +493,7 @@ let net = { mode:"local", room:"", seat:"", rev:0, polling:false, status:initial
 function freshState() {
   return {
     screen:"menu", round:0, draftTurn:"p1", pickIndex:0, p1Draft:[], p2Draft:[],
-    players:null, queue:[], active:null, winner:null, logs:["歡迎來到 LuxFatum v4.2.1 桌面連線版。"],
+    players:null, queue:[], active:null, winner:null, logs:["歡迎來到 LuxFatum v4.2.2 桌面連線版。"],
     lastSkill:null, lastCopyableSkill:{p1:null,p2:null}, pendingSkill:null, pendingConfuseAttack:null,
     lowestFirst:false, tianAtkBuff:false, tianSkillDebuff:false, lastHit:null, shakeStamp:0, fx:null
   };
@@ -708,7 +708,16 @@ async function checkForUpdates(manual=false){
   }
   render();
 }
-function downloadWindows(){ audio.play("ui"); location.href = downloadUrl("/download/windows.zip"); }
+function downloadInstaller(){
+  audio.play("ui");
+  const url = releaseState.data?.installerUrl || releaseState.data?.downloadUrl || "/download/installer.exe";
+  location.href = downloadUrl(url);
+}
+function downloadWindows(){
+  audio.play("ui");
+  const url = releaseState.data?.windowsZipUrl || "/download/windows.zip";
+  location.href = downloadUrl(url);
+}
 function downloadPackage(){ audio.play("ui"); location.href = downloadUrl("/download/package.zip"); }
 function openVersionInfo(){ audio.play("ui"); checkForUpdates(true); }
 async function commit(){ render(); await sync(); }
@@ -1152,7 +1161,7 @@ function renderTop(){
   const meta = net.mode==="online" ? `v${APP_VERSION} / 線上 ${net.room} / ${net.seat.toUpperCase()} / ${net.status}` : `v${APP_VERSION} / ${net.status}`;
   const combatButton = !view && state.screen==="battle" ? `<button onclick="toggleCombatPanel()">${ui.combatPanelOpen ? "關戰況" : "戰況"}</button>` : "";
   const fullscreenButton = !view && state.screen==="battle" ? `<button onclick="toggleFullscreen()">${ui.fullscreen || document.fullscreenElement ? "退出全螢幕" : "全螢幕"}</button>` : "";
-  const downloadButton = state.screen !== "battle" ? `<button onclick="downloadWindows()">下載</button>` : "";
+  const downloadButton = state.screen !== "battle" ? `<button onclick="downloadInstaller()">下載</button>` : "";
   return `<header class="top"><div class="brand"><h1>LuxFatum 裁定對決 v4.2</h1><p>${meta || "本機"}</p></div><div class="top-actions">${combatButton}${fullscreenButton}${downloadButton}<button onclick="${view==="rules" ? "closeRules()" : "showRules()"}">${view==="rules" ? "回遊戲" : "規則"}</button><button onclick="audio.toggle()">${audio.music ? "主題曲開" : "主題曲關"}</button><button onclick="audio.sfx=!audio.sfx; audio.play('ui'); render()">${audio.sfx ? "音效開" : "音效關"}</button><button onclick="resetToMenu()">回主選單</button></div></header>`;
 }
 function renderReleaseBanner(){
@@ -1160,12 +1169,12 @@ function renderReleaseBanner(){
   if(releaseState.checking) return `<section class="release-banner"><div><strong>正在檢查更新</strong><p>確認目前版本與下載資訊。</p></div></section>`;
   if(releaseState.error) return `<section class="release-banner"><div><strong>更新檢查暫時失敗</strong><p>${releaseState.error}</p></div><div class="release-actions"><button onclick="checkForUpdates(true)">重試</button></div></section>`;
   if(!data || (!data.updateAvailable && !data.forceUpdate)) return "";
-  return `<section class="release-banner ${data.forceUpdate ? "force" : ""}"><div><strong>${data.forceUpdate ? "需要更新才能繼續線上對戰" : "有新版本可下載"}</strong><p>目前 ${APP_VERSION}，最新 ${data.latestVersion}。${data.message || ""}</p></div><div class="release-actions"><button onclick="downloadWindows()">下載 Windows 版</button><button onclick="downloadPackage()">Render/GitHub 包</button></div></section>`;
+  return `<section class="release-banner ${data.forceUpdate ? "force" : ""}"><div><strong>${data.forceUpdate ? "需要更新才能繼續線上對戰" : "有新版本可下載"}</strong><p>目前 ${APP_VERSION}，最新 ${data.latestVersion}。${data.message || ""}</p></div><div class="release-actions"><button onclick="downloadInstaller()">下載安裝檔</button><button onclick="downloadWindows()">免安裝 zip</button><button onclick="downloadPackage()">Render/GitHub 包</button></div></section>`;
 }
 function renderUpdateGate(){
   const data = releaseState.data;
   if(!data?.forceUpdate) return "";
-  return `<div class="update-gate"><section class="update-gate-panel"><h2>必須更新</h2><p>${data.message || "此版本已不支援線上對戰，請下載最新版本。"}</p><div class="release-actions"><button onclick="downloadWindows()">下載 Windows 版</button><button onclick="downloadPackage()">下載部署包</button><button onclick="checkForUpdates(true)">重新檢查</button></div></section></div>`;
+  return `<div class="update-gate"><section class="update-gate-panel"><h2>必須更新</h2><p>${data.message || "此版本已不支援線上對戰，請下載最新版本。"}</p><div class="release-actions"><button onclick="downloadInstaller()">下載安裝檔</button><button onclick="downloadWindows()">免安裝 zip</button><button onclick="checkForUpdates(true)">重新檢查</button></div></section></div>`;
 }
 function renderMain(){
   if(view==="rules")return renderRulesPage();
@@ -1203,7 +1212,7 @@ function renderRulesPage(){
   return `<section class="rules-page">
     <section class="rules-hero">
       <div>
-        <span class="pill">v4.2.1 桌面連線版</span>
+        <span class="pill">v4.2.2 桌面連線版</span>
         <h2>規則書</h2>
         <p>雙方各選 <span class="hi-gold">3 名角色</span>，用攻擊、技能、共鳴、狀態與裁定標記擊倒對手全部角色。規則頁整理成可快速查閱的版面，對戰中也能直接打開。</p>
         <div class="row"><button onclick="closeRules()">回到遊戲</button><button onclick="startLocal()">本機開局</button></div>
@@ -1234,7 +1243,7 @@ function renderMenu(){
       ${invite}
       <div class="card"><h2>本機雙人</h2><p>同一台電腦輪流操作 P1 / P2。</p><button onclick="startLocal()">本機雙人遊玩</button></div>
       <div class="card"><h2>線上開房</h2><p>建立房間後會顯示大房號與邀請連結。把連結傳給 P2，P2 打開後可直接加入。</p><button onclick="createRoom()">建立線上房間</button></div>
-      <div class="card release-card"><h2>下載與更新</h2><p>Windows 版可像電腦遊戲一樣用啟動器開啟；Render/GitHub 包可直接解壓上傳部署。版本會自動檢查，未來可支援強制更新。</p><div class="release-actions"><button onclick="downloadWindows()">下載 Windows 版</button><button onclick="downloadPackage()">Render/GitHub 包</button><button onclick="openVersionInfo()">檢查更新</button></div></div>
+      <div class="card release-card"><h2>下載與更新</h2><p>Windows 安裝檔可直接安裝到電腦；免安裝 zip 保留給測試與手動解壓。版本會自動檢查，未來可支援強制更新。</p><div class="release-actions"><button onclick="downloadInstaller()">下載安裝檔</button><button onclick="downloadWindows()">免安裝 zip</button><button onclick="downloadPackage()">Render/GitHub 包</button><button onclick="openVersionInfo()">檢查更新</button></div></div>
       <div class="card"><h2>規則頁</h2><p>查看回合流程、狀態、裁定與 18 名角色技能圖鑑。</p><button onclick="showRules()">查看規則</button></div>
       <div class="card"><h2>輸入房號加入</h2><p>如果對方只傳房號，請在這裡輸入。</p><div class="row"><input id="roomInput" value="${initialRoom}" placeholder="例如 ABC23"><button onclick="joinRoom()">加入</button></div></div>
     </section>

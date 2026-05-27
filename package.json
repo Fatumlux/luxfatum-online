@@ -1,8 +1,8 @@
 {
   "name": "luxfatum-online-v4-1",
-  "version": "4.2.1",
+  "version": "4.2.2",
   "private": true,
-  "description": "LuxFatum v4.2.1 online card battle with a downloadable desktop app",
+  "description": "LuxFatum v4.2.2 online card battle with a downloadable desktop installer",
   "scripts": {
     "start": "node server.js",
     "check": "node --check server.js"

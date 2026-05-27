@@ -19,7 +19,8 @@ const APP_META = {
   minSupportedVersion: releaseInfo.minSupportedVersion || releaseInfo.version || packageInfo.version || "0.0.0",
   forceUpdate: !!releaseInfo.forceUpdate,
   packageName: `luxfatum-online-v${releaseInfo.version || packageInfo.version || "0.0.0"}-render-github.zip`,
-  windowsPackageName: `LuxFatum-Windows-Desktop-Online-v${releaseInfo.version || packageInfo.version || "0.0.0"}.zip`
+  windowsPackageName: `LuxFatum-Windows-Desktop-Online-v${releaseInfo.version || packageInfo.version || "0.0.0"}.zip`,
+  installerPackageName: `LuxFatum-Setup-v${releaseInfo.version || packageInfo.version || "0.0.0"}.exe`
 };
 
 const mime = {
@@ -131,7 +132,9 @@ function versionPayload(clientVersion) {
     updatedAt: APP_META.updatedAt,
     notes: releaseInfo.notes || [],
     message: forced ? releaseInfo.forceUpdateMessage : "目前已是最新版本。",
-    downloadUrl: releaseInfo.downloadUrl || "/download/windows.zip",
+    downloadUrl: releaseInfo.downloadUrl || "/download/installer.exe",
+    installerUrl: releaseInfo.installerUrl || releaseInfo.downloadUrl || "/download/installer.exe",
+    windowsZipUrl: releaseInfo.windowsZipUrl || "/download/windows.zip",
     renderPackageUrl: releaseInfo.renderPackageUrl || "/download/package.zip",
     onlineUrl: releaseInfo.onlineUrl || null,
     versionUrl: releaseInfo.versionUrl || "/api/version"
@@ -173,6 +176,8 @@ function shouldPackage(rel) {
     "dist/windows/Microsoft.Web.WebView2.Core.dll",
     "dist/windows/Microsoft.Web.WebView2.WinForms.dll",
     "dist/windows/WebView2Loader.dll",
+    "dist/installer/LuxFatum_Setup_Base.exe",
+    "installer/MicrosoftEdgeWebView2Setup.exe",
     "launcher/",
     "index.html",
     "server.js",
@@ -264,7 +269,7 @@ function servePackage(res) {
 function windowsPackageFiles() {
   const exe = path.join(ROOT, "dist", "windows", "LuxFatum.exe");
   if (!fs.existsSync(exe)) return null;
-  const files = packageFiles().filter(file => !file.rel.startsWith("launcher/") && !file.rel.startsWith("dist/"));
+  const files = packageFiles().filter(file => !file.rel.startsWith("launcher/") && !file.rel.startsWith("dist/") && !file.rel.startsWith("installer/"));
   files.push({ full: exe, rel: "LuxFatum.exe", stat: fs.statSync(exe) });
   for (const name of ["Microsoft.Web.WebView2.Core.dll", "Microsoft.Web.WebView2.WinForms.dll", "WebView2Loader.dll"]) {
     const full = path.join(ROOT, "dist", "windows", name);
@@ -284,6 +289,48 @@ function serveWindowsPackage(res) {
     "cache-control": "no-store"
   });
   res.end(zip);
+}
+
+function buildInstaller() {
+  const baseExe = path.join(ROOT, "dist", "installer", "LuxFatum_Setup_Base.exe");
+  const webViewSetup = path.join(ROOT, "installer", "MicrosoftEdgeWebView2Setup.exe");
+  const files = windowsPackageFiles();
+  if (!files || !fs.existsSync(baseExe) || !fs.existsSync(webViewSetup)) return null;
+
+  const base = fs.readFileSync(baseExe);
+  const payload = buildZip(files);
+  const webView = fs.readFileSync(webViewSetup);
+  const lengths = Buffer.alloc(16);
+  lengths.writeBigInt64LE(BigInt(payload.length), 0);
+  lengths.writeBigInt64LE(BigInt(webView.length), 8);
+  return Buffer.concat([base, payload, webView, lengths, Buffer.from("LUXFATUMSETUP001", "ascii")]);
+}
+
+function serveInstaller(res) {
+  if (releaseInfo.installerExternalUrl) {
+    res.writeHead(302, {
+      "location": releaseInfo.installerExternalUrl,
+      "cache-control": "no-store"
+    });
+    res.end();
+    return;
+  }
+
+  const installer = buildInstaller();
+  if (!installer) {
+    return json(res, 404, {
+      ok: false,
+      error: "Installer payload is missing. Upload dist/installer/LuxFatum_Setup_Base.exe and installer/MicrosoftEdgeWebView2Setup.exe."
+    });
+  }
+
+  res.writeHead(200, {
+    "content-type": "application/vnd.microsoft.portable-executable",
+    "content-length": installer.length,
+    "content-disposition": `attachment; filename="${APP_META.installerPackageName}"`,
+    "cache-control": "no-store"
+  });
+  res.end(installer);
 }
 
 function touch(room) {
@@ -426,6 +473,10 @@ const server = http.createServer((req, res) => {
   }
   if (url.pathname === "/download/windows.zip") {
     serveWindowsPackage(res);
+    return;
+  }
+  if (url.pathname === "/download/installer.exe") {
+    serveInstaller(res);
     return;
   }
   if (url.pathname.startsWith("/api/")) {

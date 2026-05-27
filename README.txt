@@ -1,4 +1,4 @@
-LuxFatum 裁定對決 v4.2.1 桌面連線版
+LuxFatum 裁定對決 v4.2.2 桌面連線版
 
 本版本提供兩種玩法：
 
@@ -28,7 +28,8 @@ Windows 下載版
 
 版本與更新
 - release.json 控制版本號、更新提示與強制更新。
-- /download/windows.zip 提供玩家下載包。
+- /download/installer.exe 提供最新版 Windows 安裝檔。
+- /download/windows.zip 提供免安裝 zip。
 - /download/package.zip 提供 Render/GitHub 上傳包。
 - 房間對戰 API 保持不變：/api/create、/api/join、/api/state。
 

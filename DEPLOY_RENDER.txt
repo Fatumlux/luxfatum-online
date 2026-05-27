@@ -23,7 +23,8 @@ GitHub 根目錄應包含
 - start_server.bat
 
 注意
-- v4.2.1 之後 Windows 下載版是本地桌面應用程式，需要上傳 dist/windows 內的 LuxFatum.exe 與 WebView2 DLL。
+- v4.2.2 之後網站可直接下載最新版安裝檔，需要上傳 dist/installer/LuxFatum_Setup_Base.exe 與 installer/MicrosoftEdgeWebView2Setup.exe。
+- Windows 下載版是本地桌面應用程式，需要上傳 dist/windows 內的 LuxFatum.exe 與 WebView2 DLL。
 - Windows 下載版不需要 Node.js，因此不用上傳 runtime/node.exe。
 
 Render 部署
@@ -35,11 +36,12 @@ Render 部署
    https://你的網址/api/version
 
 下載入口
-- /download/windows.zip：Windows 玩家下載版。
+- /download/installer.exe：Windows 最新安裝檔。
+- /download/windows.zip：Windows 免安裝 zip。
 - /download/package.zip：Render/GitHub 上傳包。
 
 版本管理
-- package.json 與 release.json 目前版本為 4.2.1。
+- package.json 與 release.json 目前版本為 4.2.2。
 - release.json 的 minSupportedVersion 控制最低支援版本。
 - release.json 的 forceUpdate 設為 true 後，舊版會顯示強制更新。
 

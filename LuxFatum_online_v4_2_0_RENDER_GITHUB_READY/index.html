@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LuxFatum 裁定對決 v4.2.0 線上版</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08090d;
+      --panel: #12141c;
+      --panel2: #1b1d28;
+      --line: #343947;
+      --text: #f3f0e8;
+      --muted: #b7b1a2;
+      --blue: #5aa7ff;
+      --red: #ff6c7a;
+      --green: #7ddc9a;
+      --gold: #e6c06a;
+      --gold2: #fff0b8;
+      --ink: rgba(4,5,8,.84);
+      --violet: #b798ff;
+      --glass: rgba(18, 20, 29, .78);
+      --glow-blue: rgba(90,167,255,.28);
+      --glow-red: rgba(255,108,122,.28);
+      --glow-gold: rgba(255,209,102,.34);
+      --soft-line: rgba(230,192,106,.16);
+      --title-font: "Noto Serif TC", "Microsoft JhengHei UI", "Microsoft JhengHei", serif;
+      --body-font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--body-font);
+      line-height: 1.55;
+      background:
+        linear-gradient(180deg, rgba(8,9,13,.36), rgba(8,9,13,.9) 46%, #07080b 100%),
+        url("assets/luxfatum-arena-bg.png") center top / cover fixed no-repeat,
+        var(--bg);
+      color: var(--text);
+      letter-spacing: 0;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(135deg, rgba(90,167,255,.12), transparent 38%),
+        linear-gradient(235deg, rgba(255,108,122,.12), transparent 42%),
+        linear-gradient(180deg, rgba(255,209,102,.06), transparent 34%);
+      mix-blend-mode: screen;
+      z-index: -1;
+    }
+    h1, h2, h3, p, li, button, span { overflow-wrap: anywhere; }
+    h1, h2, h3 { line-height: 1.2; letter-spacing: 0; }
+    button, input, select { font: inherit; }
+    button {
+      border: 1px solid rgba(230,192,106,.22);
+      background: linear-gradient(180deg, rgba(44,43,36,.94), rgba(17,18,24,.94));
+      color: var(--text);
+      border-radius: 8px;
+      padding: 11px 14px;
+      min-height: 44px;
+      cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 8px 20px rgba(0,0,0,.22);
+      transition: transform .14s ease, border-color .14s ease, filter .14s ease, box-shadow .14s ease;
+    }
+    button:hover:not(:disabled) { border-color: var(--gold2); filter: brightness(1.12); transform: translateY(-1px); box-shadow: 0 0 18px rgba(230,192,106,.18), 0 12px 26px rgba(0,0,0,.28); }
+    button:active:not(:disabled) { transform: translateY(1px) scale(.99); }
+    button:disabled { opacity: .42; cursor: not-allowed; }
+    input, select { background: rgba(7,9,14,.86); color: var(--text); border: 1px solid rgba(230,192,106,.22); border-radius: 8px; padding: 10px; width: 100%; }
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+    .app.shake { animation: screenShake .22s ease; }
+    .top { position: sticky; top: 0; z-index: 6; min-height: 72px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 24px; border-bottom: 1px solid rgba(230,192,106,.12); background: rgba(7,8,12,.9); backdrop-filter: blur(16px); box-shadow: 0 18px 34px rgba(0,0,0,.34); }
+    .brand h1 { margin: 0; font-family: var(--title-font); font-size: 24px; letter-spacing: 0; text-shadow: 0 0 16px rgba(255,209,102,.22); }
+    .brand p { margin: 3px 0 0; color: var(--muted); font-size: 13px; }
+    .top-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .wrap { width: min(1480px, 100%); margin: 0 auto; padding: 28px; }
+    .grid { display: grid; gap: 22px; }
+    .menu { grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); align-items: stretch; margin-top: 26px; }
+    .menu-shell { padding-top: 26px; }
+    .game-hero { min-height: 320px; display: flex; align-items: end; padding: 40px; border: 1px solid rgba(230,192,106,.16); border-radius: 8px; background: linear-gradient(180deg, rgba(5,7,12,.06), rgba(5,7,12,.64)), url("assets/luxfatum-arena-bg.png") center / cover no-repeat; box-shadow: 0 24px 70px rgba(0,0,0,.42); overflow: hidden; }
+    .game-hero h2 { margin: 0; font-family: var(--title-font); font-size: clamp(38px, 6vw, 72px); line-height: 1; letter-spacing: 0; text-shadow: 0 0 22px rgba(255,209,102,.32), 0 4px 18px rgba(0,0,0,.66); }
+    .game-hero p { max-width: 680px; color: #dce4f5; margin: 14px 0 0; line-height: 1.8; font-size: 15px; }
+    .character-ribbon { display: grid; grid-template-columns: repeat(6, 1fr); gap: 24px; margin-top: 26px; padding: 2px 0; }
+    .ribbon-card { min-height: 0; aspect-ratio: 3 / 4; border: 0; border-radius: 8px; background-size: cover; background-repeat: no-repeat; background-position: var(--focus, center 16%); box-shadow: 0 18px 42px rgba(0,0,0,.38), inset 0 0 0 1px rgba(230,192,106,.18); position: relative; overflow: hidden; }
+    .ribbon-card::after { content: ""; position: absolute; inset: auto 0 0; height: 52%; background: linear-gradient(180deg, transparent, rgba(5,7,12,.86)); }
+    .ribbon-card span { position: absolute; left: 12px; bottom: 10px; z-index: 1; font-weight: 800; text-shadow: 0 2px 12px #000; }
+    .card, .fighter, .log, .actions, .draft-card { background: linear-gradient(180deg, rgba(22,23,28,.84), rgba(8,9,13,.86)); border: 1px solid var(--soft-line); border-radius: 8px; backdrop-filter: blur(10px); box-shadow: 0 16px 40px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,240,184,.06); }
+    .card { padding: 24px; }
+    .card h2 { margin: 0 0 12px; font-family: var(--title-font); }
+    .card p { color: var(--muted); line-height: 1.85; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .pill { display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(230,192,106,.18); background: rgba(8,9,13,.72); padding: 4px 9px; border-radius: 999px; font-size: 12px; color: var(--muted); line-height: 1.25; }
+    .pill.gold, .accent { color: var(--gold); border-color: rgba(255,209,102,.32); background: rgba(255,209,102,.08); }
+    .pill.blue { color: #9fd0ff; border-color: rgba(90,167,255,.34); background: rgba(90,167,255,.09); }
+    .pill.red { color: #ff9aa6; border-color: rgba(255,108,122,.34); background: rgba(255,108,122,.09); }
+    .pill.good { color: var(--green); border-color: rgba(125,220,154,.34); background: rgba(125,220,154,.08); }
+    .pill.bad { color: var(--red); border-color: rgba(255,108,122,.34); background: rgba(255,108,122,.08); }
+    .pill.queue-current { color: var(--gold2); border-color: rgba(230,192,106,.48); background: rgba(230,192,106,.12); box-shadow: 0 0 16px rgba(230,192,106,.16); }
+    .status-pill { font-weight: 800; color: #f7ead0; }
+    .status-icon { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: rgba(230,192,106,.14); color: var(--gold2); font-size: 11px; }
+    .hi-blue { color: #9fd0ff; font-weight: 800; }
+    .hi-red { color: #ff91a0; font-weight: 800; }
+    .hi-gold { color: var(--gold); font-weight: 800; }
+    .subtle { color: var(--muted); font-size: 13px; }
+    .p1 { color: var(--blue); }
+    .p2 { color: var(--red); }
+    .battle-table { display: grid; gap: 18px; align-items: start; }
+    .battle-core { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(360px, 470px); grid-template-areas: "stage command"; gap: 18px; align-items: start; padding: 18px; border: 1px solid rgba(230,192,106,.16); border-radius: 8px; background: linear-gradient(180deg, rgba(8,9,13,.46), rgba(5,6,9,.3)); box-shadow: inset 0 0 80px rgba(230,192,106,.035), 0 18px 45px rgba(0,0,0,.26); }
+    .core-stage { grid-area: stage; display: grid; gap: 16px; }
+    .core-command { grid-area: command; display: grid; gap: 16px; position: sticky; top: 94px; }
+    .core-log { grid-area: log; display: grid; grid-template-columns: minmax(320px, .78fr) minmax(360px, 1fr); gap: 16px; align-items: start; }
+    .combat-drawer { position: fixed; left: 18px; top: 92px; z-index: 7; width: min(326px, calc(100vw - 32px)); pointer-events: none; }
+    .combat-drawer-panel { pointer-events: auto; display: grid; gap: 10px; max-height: calc(100vh - 112px); overflow: hidden; padding: 12px; border: 1px solid rgba(230,192,106,.24); border-radius: 8px; background: linear-gradient(180deg, rgba(18,18,18,.94), rgba(7,8,12,.94)); box-shadow: 0 22px 64px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,240,184,.08); backdrop-filter: blur(16px); transform: translateX(0); opacity: 1; transition: transform .22s ease, opacity .22s ease; }
+    .combat-drawer:not(.open) .combat-drawer-panel { transform: translateX(calc(-100% - 24px)); opacity: 0; pointer-events: none; }
+    .combat-drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 2px 2px; }
+    .combat-drawer-head h2 { margin: 7px 0 0; font-family: var(--title-font); font-size: 18px; }
+    .combat-drawer-close { width: 40px; min-height: 40px; padding: 0; font-weight: 900; }
+    .combat-drawer .queue-card, .combat-drawer .log { padding: 14px; box-shadow: none; }
+    .combat-drawer .queue-card h2, .combat-drawer .log h2 { font-size: 15px; margin-bottom: 10px; }
+    .combat-drawer .queue-card .row { display: grid; gap: 8px; }
+    .combat-drawer .queue-card .pill { width: 100%; justify-content: space-between; border-radius: 8px; padding: 8px 10px; }
+    .combat-drawer .log { max-height: min(42vh, 360px); }
+    .combat-drawer .log-line { padding: 8px 0 9px; font-size: 12.5px; line-height: 1.62; }
+    .team { display: grid; gap: 12px; padding: 14px; border: 1px solid rgba(230,192,106,.12); border-radius: 8px; background: rgba(5,7,12,.34); }
+    .team.p1-side { box-shadow: inset 0 -3px 0 rgba(90,167,255,.75), 0 0 30px rgba(90,167,255,.06); }
+    .team.p2-side { box-shadow: inset 0 3px 0 rgba(255,108,122,.75), 0 0 30px rgba(255,108,122,.06); }
+    .team-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 0; }
+    .team-head h2 { margin: 0; font-family: var(--title-font); }
+    .team-roster { display: grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap: 12px; align-items: stretch; }
+    .fighter { padding: 14px; position: relative; overflow: visible; min-height: 0; }
+    .fighter::before { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, rgba(230,192,106,.12), transparent 34%); pointer-events: none; opacity: .56; border-radius: inherit; }
+    .fighter.active { outline: 2px solid rgba(255,209,102,.72); outline-offset: 3px; box-shadow: 0 0 0 1px rgba(255,209,102,.2), 0 0 32px rgba(255,209,102,.18); }
+    .fighter.dead { opacity: .45; }
+    .fighter.hit { animation: hitFlash .5s ease; }
+    .fighter-main { display: grid; grid-template-columns: minmax(78px, 96px) minmax(0, 1fr); gap: 12px; align-items: start; position: relative; z-index: 1; }
+    .fighter-art { width: 100%; aspect-ratio: 3 / 4; border-radius: 7px; object-fit: cover; object-position: var(--focus, center 16%); border: 0; box-shadow: 0 14px 30px rgba(0,0,0,.42), inset 0 0 0 1px rgba(230,192,106,.2); background: transparent; }
+    .fighter-info { min-width: 0; }
+    .fighter h3 { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 8px; align-items: start; }
+    .fighter-name { min-width: 0; font-family: var(--title-font); }
+    .hpbar { height: 12px; background: #08090c; border-radius: 999px; overflow: hidden; border: 1px solid rgba(255,255,255,.16); box-shadow: inset 0 1px 4px rgba(0,0,0,.8); }
+    .hpfill { height: 100%; background: linear-gradient(90deg, #48e08a, #f2d066 62%, #ff6675); box-shadow: 0 0 14px rgba(125,220,154,.38); }
+    .stats, .statuses { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .desc { color: var(--muted); font-size: 13px; line-height: 1.72; margin: 11px 0 0; }
+    .fighter .desc { overflow: visible; }
+    .fighter-text { display: grid; gap: 6px; margin-top: 12px; }
+    .fighter-text .desc { margin: 0; }
+    .record-board { position: relative; z-index: 1; display: grid; gap: 6px; margin-top: 10px; padding: 8px; border: 1px solid rgba(230,192,106,.14); border-radius: 8px; background: rgba(5,6,9,.34); }
+    .record-row { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 8px; align-items: start; }
+    .record-label { color: var(--gold2); font-size: 12px; font-weight: 900; }
+    .record-row p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.48; overflow-wrap: break-word; word-break: normal; }
+    .center { display: grid; gap: 22px; }
+    .active-spotlight { min-height: 270px; overflow: hidden; position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(150px, 34%); align-items: end; gap: 18px; padding: 24px; border: 1px solid rgba(230,192,106,.18); border-radius: 8px; background: linear-gradient(130deg, rgba(20,19,16,.94), rgba(7,9,14,.86)); box-shadow: 0 18px 42px rgba(0,0,0,.4); }
+    .active-spotlight::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,7,12,.08), rgba(5,7,12,.82)); }
+    .active-spotlight > div { position: relative; z-index: 1; min-width: 0; }
+    .spotlight-frame { position: relative; z-index: 1; min-height: 0; align-self: stretch; overflow: hidden; border-radius: 8px; background: #08090d; box-shadow: 0 18px 32px rgba(0,0,0,.42), inset 0 0 0 1px rgba(230,192,106,.22); }
+    .spotlight-frame::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 50% 10%, rgba(255,240,184,.16), transparent 40%); pointer-events: none; z-index: 2; mix-blend-mode: screen; }
+    .spotlight-frame::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(5,7,12,.02), transparent 58%, rgba(5,7,12,.24)); pointer-events: none; z-index: 2; }
+    .spotlight-art { position: relative; z-index: 1; display: block; width: 100%; height: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: var(--focus, center 16%); border-radius: 8px; filter: drop-shadow(0 18px 28px rgba(0,0,0,.45)); }
+    .active-spotlight h2 { margin: 6px 0 8px; font-family: var(--title-font); font-size: 28px; text-shadow: 0 2px 14px #000; }
+    .active-spotlight p { margin: 10px 0 0; color: #dce4f5; line-height: 1.75; font-size: 14px; }
+    .spotlight-res { color: #b8c4d8; }
+    .turn-hud { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+    .skill-burst { position: relative; overflow: hidden; display: grid; grid-template-columns: 48px minmax(0, 1fr); gap: 14px; align-items: center; padding: 14px 18px; border: 1px solid rgba(230,192,106,.3); border-radius: 8px; background: linear-gradient(100deg, rgba(230,192,106,.16), rgba(9,10,14,.9) 46%, rgba(90,167,255,.1)); box-shadow: 0 16px 36px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,240,184,.14); animation: skillBurst .7s ease both; }
+    .skill-burst::after { content: ""; position: absolute; inset: 0; transform: translateX(-120%); background: linear-gradient(90deg, transparent, rgba(255,240,184,.34), transparent); animation: skillSweep .9s ease both; }
+    .fx-rune { position: relative; z-index: 1; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%; border: 1px solid rgba(255,240,184,.36); background: radial-gradient(circle, rgba(255,240,184,.22), rgba(230,192,106,.08) 56%, rgba(5,6,9,.82)); color: var(--gold2); font-family: var(--title-font); font-size: 22px; font-weight: 900; box-shadow: 0 0 24px rgba(230,192,106,.18); }
+    .fx-copy { position: relative; z-index: 1; min-width: 0; }
+    .skill-burst strong { position: relative; z-index: 1; display: block; color: var(--gold2); font-family: var(--title-font); font-size: 18px; }
+    .skill-burst .fx-copy span { position: relative; z-index: 1; display: block; margin-top: 3px; color: #e6dfce; font-size: 13px; }
+    .status-help { display: grid; gap: 8px; margin: 0 0 16px; }
+    .status-help-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 11px; border: 1px solid rgba(230,192,106,.16); border-radius: 8px; background: rgba(5,6,9,.32); color: #dcd3bf; font-size: 12.5px; line-height: 1.55; }
+    .status-help-row b { color: var(--gold2); }
+    .actions { padding: 20px; }
+    .actions h2 { margin: 0 0 14px; font-size: 19px; font-family: var(--title-font); }
+    .action-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .actions .action-grid button { min-height: 74px; font-weight: 800; letter-spacing: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; text-align: left; gap: 4px; }
+    .actions .action-grid button:not(:disabled):has(.command-label) { background: linear-gradient(180deg, rgba(50,47,35,.95), rgba(16,17,22,.95)); }
+    .actions .action-grid button:not(:disabled):has(.command-label):hover { box-shadow: 0 0 22px rgba(230,192,106,.18), 0 14px 26px rgba(0,0,0,.34); }
+    .action-grid .judgement-action { grid-column: 1 / -1; }
+    .command-label { display: block; color: #f6f1dc; font-size: 16px; }
+    .command-note { display: block; color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.35; }
+    .quick-tip { margin: 0 0 16px; padding: 12px 14px; border: 1px solid rgba(255,209,102,.18); border-radius: 8px; background: linear-gradient(90deg, rgba(255,209,102,.08), rgba(90,167,255,.06)); color: #dce4f5; line-height: 1.75; font-size: 13px; }
+    .log { padding: 18px; max-height: 460px; overflow: auto; scroll-padding: 14px; }
+    .log h2 { margin: 0 0 8px; font-size: 16px; }
+    .log-line { color: #d9deea; border-bottom: 1px solid rgba(255,255,255,.06); padding: 10px 0 11px; font-size: 13px; line-height: 1.72; min-height: 0; }
+    .log-line.impact { color: var(--gold); animation: logPop .28s ease; }
+    .draft { display: grid; grid-template-columns: repeat(auto-fill, minmax(248px, 1fr)); grid-auto-rows: auto; gap: 24px; padding-top: 8px; align-items: stretch; }
+    .draft-card { padding: 0; text-align: left; min-height: 0; height: auto; overflow: hidden; display: grid; grid-template-rows: auto 1fr; border: 1px solid rgba(230,192,106,.16); background: linear-gradient(180deg, rgba(32,28,18,.72), rgba(10,11,15,.86)); }
+    .draft-card h3 { margin: 0; font-family: var(--title-font); font-size: 25px; text-shadow: 0 2px 12px rgba(0,0,0,.74); }
+    .draft-art { min-height: 0; aspect-ratio: 3 / 4; background-size: cover; background-repeat: no-repeat; background-position: var(--focus, center 16%); position: relative; display: flex; align-items: end; padding: 18px; background-color: transparent; }
+    .draft-art::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 24%, rgba(5,7,12,.78)); pointer-events: none; }
+    .draft-art h3 { position: relative; z-index: 1; }
+    .draft-body { padding: 18px; display: grid; align-content: start; gap: 12px; min-height: 0; }
+    .draft-body .desc { overflow: visible; }
+    .draft-card:hover:not(:disabled) { box-shadow: 0 0 24px rgba(255,209,102,.16), 0 16px 34px rgba(0,0,0,.28); }
+    .draft-card.selected { opacity: .45; filter: grayscale(.35); }
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: grid; place-items: center; padding: 16px; z-index: 10; }
+    .dialog { width: min(960px, 100%); max-height: 88vh; overflow: auto; background: linear-gradient(180deg, rgba(26,30,43,.96), rgba(12,15,23,.96)); border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: 26px; box-shadow: 0 26px 90px rgba(0,0,0,.58); }
+    .dialog h2 { margin: 0; font-size: 28px; }
+    .dialog-head { align-items: center; justify-content: space-between; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,.1); }
+    .dialog-body { display: grid; gap: 18px; }
+    .dialog-section { padding: 20px; border: 1px solid rgba(255,255,255,.09); border-radius: 8px; background: rgba(8,11,18,.52); }
+    .dialog-section h3 { margin: 0 0 14px; font-size: 15px; color: var(--gold); letter-spacing: 0; }
+    .skill-meta { display: flex; gap: 8px; flex-wrap: wrap; }
+    .resonance-box { display: grid; gap: 12px; }
+    .resonance-box label { gap: 12px; align-items: center; font-size: 18px; }
+    .skill-desc { font-size: 15px; line-height: 1.75; color: #dce4f5; }
+    .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+    .choice { text-align: left; min-width: 0; overflow-wrap: anywhere; padding: 16px 18px; min-height: 84px; }
+    .choice-title { display: block; font-size: 18px; margin-bottom: 8px; }
+    .choice input { width: auto; margin-right: 6px; }
+    .online { display: grid; gap: 10px; padding: 12px; background: #11141b; border: 1px solid var(--line); border-radius: 8px; margin-top: 12px; }
+    .pending { border-color: var(--gold); background: #211c12; }
+    .danger-zone { border: 1px solid rgba(255,108,122,.18); border-radius: 8px; padding: 12px 14px; background: rgba(20,12,16,.56); color: var(--muted); }
+    .danger-zone summary { cursor: pointer; font-weight: 800; color: #ff9aa6; }
+    .danger-zone .action-grid { margin-top: 12px; }
+    .room-banner { display: grid; gap: 10px; background: linear-gradient(90deg, rgba(18,28,44,.86), rgba(34,25,40,.82)); border: 1px solid rgba(255,209,102,.24); border-radius: 8px; padding: 14px; margin-bottom: 14px; box-shadow: 0 0 24px rgba(255,209,102,.08); }
+    .room-code { font-size: 30px; font-weight: 900; letter-spacing: 0; color: var(--gold); }
+    .invite-link { word-break: break-all; color: var(--muted); font-size: 13px; }
+    .notice { color: var(--gold); font-size: 13px; }
+    .release-banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border: 1px solid rgba(230,192,106,.2); border-radius: 8px; background: linear-gradient(90deg, rgba(230,192,106,.1), rgba(8,9,13,.78)); box-shadow: 0 14px 30px rgba(0,0,0,.22); }
+    .release-banner strong { color: var(--gold2); }
+    .release-banner p { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+    .release-banner.force { border-color: rgba(255,108,122,.48); background: linear-gradient(90deg, rgba(255,108,122,.18), rgba(8,9,13,.9)); }
+    .release-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .release-card { display: grid; gap: 12px; }
+    .release-card .release-actions { justify-content: flex-start; }
+    .update-gate { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; padding: 18px; background: rgba(0,0,0,.78); }
+    .update-gate-panel { width: min(620px, 100%); padding: 24px; border: 1px solid rgba(255,108,122,.42); border-radius: 8px; background: linear-gradient(180deg, rgba(26,20,24,.98), rgba(8,9,13,.98)); box-shadow: 0 28px 90px rgba(0,0,0,.58); }
+    .update-gate-panel h2 { margin: 0 0 10px; font-family: var(--title-font); color: var(--gold2); }
+    .update-gate-panel p { color: #e7dece; line-height: 1.75; }
+    .bad { color: var(--red); }
+    .good { color: var(--green); }
+    .rules-page { display: grid; gap: 26px; }
+    .rules-hero { min-height: 360px; display: grid; grid-template-columns: minmax(300px, 1fr) minmax(340px, 540px); gap: 34px; align-items: end; padding: 34px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: linear-gradient(135deg, rgba(7,10,16,.88), rgba(18,22,34,.5)), url("assets/luxfatum-arena-bg.png") center / cover no-repeat; overflow: hidden; box-shadow: 0 24px 70px rgba(0,0,0,.36); }
+    .rules-hero h2 { margin: 8px 0 0; font-family: var(--title-font); font-size: clamp(34px, 6vw, 64px); line-height: 1; letter-spacing: 0; }
+    .rules-hero p { color: #dce4f5; line-height: 1.85; margin: 16px 0 0; max-width: 760px; }
+    .rules-art-stack { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: end; }
+    .rules-art-stack img { width: 100%; aspect-ratio: 3 / 4; height: auto; object-fit: cover; object-position: var(--focus, center 16%); border-radius: 8px; border: 0; box-shadow: 0 18px 36px rgba(0,0,0,.38), inset 0 0 0 1px rgba(230,192,106,.2); background: transparent; }
+    .rules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
+    .rule-card { padding: 22px; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; background: linear-gradient(180deg, rgba(26,30,43,.8), rgba(10,13,20,.78)); box-shadow: 0 14px 30px rgba(0,0,0,.24); }
+    .rule-card h3 { margin: 0 0 16px; color: var(--gold); font-family: var(--title-font); }
+    .rule-card p, .rule-card li { color: #dce4f5; line-height: 1.85; }
+    .rule-card li + li { margin-top: 8px; }
+    .rule-card ul { margin: 0; padding-left: 22px; }
+    .rule-card li::marker { color: rgba(255,209,102,.86); }
+    .status-list { display: grid; gap: 12px; }
+    .status-line { display: grid; grid-template-columns: 72px 1fr; gap: 14px; align-items: start; color: #dce4f5; line-height: 1.7; }
+    .codex-section { display: grid; gap: 20px; }
+    .codex { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; }
+    .codex-card { min-height: 430px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; border: 1px solid rgba(230,192,106,.14); border-radius: 8px; background: rgba(10,13,20,.82); box-shadow: 0 14px 32px rgba(0,0,0,.24); }
+    .codex-art { aspect-ratio: 3 / 4; background-size: cover; background-repeat: no-repeat; background-position: var(--focus, center 16%); position: relative; background-color: transparent; }
+    .codex-art::after { content: ""; position: absolute; inset: auto 0 0; height: 55%; background: linear-gradient(180deg, transparent, rgba(5,7,12,.9)); }
+    .codex-card h3 { position: absolute; left: 14px; bottom: 10px; z-index: 1; margin: 0; font-size: 24px; text-shadow: 0 2px 14px #000; }
+    .codex-body { padding: 18px; display: grid; align-content: start; gap: 12px; }
+    .codex-body p { margin: 0; color: var(--muted); line-height: 1.7; font-size: 13px; }
+    @keyframes hitFlash {
+      0% { transform: translateX(0); box-shadow: 0 0 0 rgba(255,209,102,0); }
+      18% { transform: translateX(-5px); box-shadow: 0 0 24px rgba(255,108,122,.52); }
+      36% { transform: translateX(5px); }
+      60% { transform: translateX(-2px); }
+      100% { transform: translateX(0); box-shadow: 0 0 0 rgba(255,209,102,0); }
+    }
+    @keyframes screenShake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      50% { transform: translateX(4px); }
+      75% { transform: translateX(-2px); }
+    }
+    @keyframes logPop {
+      0% { transform: scale(.98); filter: brightness(1.4); }
+      100% { transform: scale(1); filter: brightness(1); }
+    }
+    @keyframes skillBurst {
+      0% { transform: translateY(-6px) scale(.98); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    @keyframes skillSweep {
+      0% { transform: translateX(-120%); }
+      100% { transform: translateX(120%); }
+    }
+    @media (max-width: 980px) {
+      .battle-table { gap: 16px; }
+      .battle-core { grid-template-columns: 1fr; grid-template-areas: "stage" "command"; order: -1; padding: 14px; }
+      .core-command { position: static; }
+      .core-log { grid-template-columns: 1fr; }
+      .combat-drawer { top: auto; bottom: 16px; left: 12px; z-index: 9; width: min(330px, calc(100vw - 24px)); }
+      .combat-drawer-panel { max-height: min(72vh, 560px); }
+      .active-spotlight { order: 0; }
+      .core-command > .actions { order: 1; }
+      .queue-card { order: 2; }
+      .log { order: 3; }
+      .danger-zone { order: 4; }
+      .team-roster { grid-template-columns: 1fr; }
+      .top { align-items: flex-start; flex-direction: column; }
+      .top-actions { justify-content: flex-start; }
+      .action-grid { grid-template-columns: 1fr; }
+      .active-spotlight { grid-template-columns: 1fr; min-height: 0; padding: 18px; gap: 14px; }
+      .spotlight-frame { max-height: 220px; order: -1; }
+      .room-banner .row { align-items: flex-start; }
+      .room-code { font-size: 24px; }
+      .character-ribbon { grid-template-columns: repeat(2, 1fr); }
+      .ribbon-card { min-height: 0; }
+      .rules-hero { grid-template-columns: 1fr; padding: 20px; }
+      .draft { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); grid-auto-rows: auto; }
+      .draft-card { min-height: 0; height: auto; grid-template-rows: auto 1fr; }
+      .fighter-main { grid-template-columns: 92px minmax(0, 1fr); }
+      .fighter-art { width: 92px; }
+    }
+    @media (max-width: 620px) {
+      .wrap { padding: 16px; }
+      .game-hero { padding: 24px; }
+      .character-ribbon { grid-template-columns: 1fr 1fr; gap: 14px; }
+      .fighter-main { grid-template-columns: 1fr; }
+      .fighter-art { width: min(100%, 190px); justify-self: center; }
+      .fighter { padding: 18px; }
+      .record-board { padding: 10px; }
+      .record-row { grid-template-columns: 46px minmax(0, 1fr); }
+      .record-row p { font-size: 12.5px; line-height: 1.62; }
+      .team-head { align-items: flex-start; flex-direction: column; }
+      .dialog { padding: 18px; }
+      .choice-grid { grid-template-columns: 1fr; }
+    }
+    body.battle-lock { overflow: hidden; }
+    .battle-app { height: 100vh; min-height: 100vh; overflow: hidden; }
+    .battle-app .top { position: relative; flex: 0 0 auto; min-height: 60px; padding: 10px 16px; flex-direction: row; align-items: center; }
+    .battle-app .brand h1 { font-size: 20px; }
+    .battle-app .brand p { max-width: 44vw; overflow: hidden; overflow-wrap: normal; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .battle-app .top-actions { gap: 6px; flex-wrap: nowrap; }
+    .battle-app .top-actions button { min-height: 36px; padding: 7px 10px; font-size: 12px; white-space: nowrap; }
+    .battle-app .wrap { width: 100%; max-width: none; flex: 1 1 auto; min-height: 0; padding: 10px 18px 12px; overflow: hidden; }
+    .battle-app .battle-table { height: 100%; min-height: 0; grid-template-rows: 116px minmax(0, 1fr) 118px; gap: 10px; align-items: stretch; overflow: hidden; }
+    .battle-app .battle-core { order: 0; height: 100%; min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(330px, 430px); grid-template-areas: "stage command"; gap: 12px; padding: 12px; align-items: stretch; overflow: hidden; }
+    .battle-app .core-stage { min-height: 0; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; overflow: hidden; }
+    .battle-app .core-command { position: static; min-height: 0; gap: 10px; overflow: hidden; }
+    .battle-app .team { min-height: 0; gap: 5px; padding: 6px 8px; overflow: hidden; }
+    .battle-app .team-head { min-height: 20px; gap: 8px; }
+    .battle-app .team-head h2 { font-size: 16px; }
+    .battle-app .team-head .row { gap: 6px; }
+    .battle-app .team-roster { height: 100%; min-height: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+    .battle-app .fighter { min-height: 0; padding: 6px; overflow: hidden; display: grid; align-content: center; }
+    .battle-app .fighter-main { grid-template-columns: 46px minmax(0, 1fr); gap: 7px; align-items: center; }
+    .battle-app .fighter-art { width: 46px; border-radius: 6px; }
+    .battle-app .fighter h3 { margin: 0 0 5px; font-size: 13px; }
+    .battle-app .fighter .pill, .battle-app .team-head .pill { padding: 2px 6px; font-size: 10px; }
+    .battle-app .hpbar { height: 9px; }
+    .battle-app .stats, .battle-app .statuses { gap: 4px; margin-top: 5px; }
+    .battle-app .fighter .stats .pill:nth-child(n+4) { display: none; }
+    .battle-app .record-board { display: none; }
+    .battle-app .active-spotlight { height: 100%; min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(150px, 26%); align-items: stretch; gap: 14px; padding: 18px; overflow: hidden; }
+    .battle-app .active-spotlight > div { display: flex; flex-direction: column; justify-content: center; }
+    .battle-app .spotlight-frame { height: 100%; max-height: none; align-self: stretch; }
+    .battle-app .spotlight-art { width: 100%; height: 100%; max-height: none; min-height: 0; aspect-ratio: auto; align-self: stretch; padding: 0; object-fit: cover; object-position: var(--focus, center 16%); }
+    .battle-app .active-spotlight h2 { font-size: 24px; margin: 5px 0 6px; }
+    .battle-app .active-spotlight p { margin-top: 7px; font-size: 13px; line-height: 1.56; }
+    .battle-app .turn-hud { gap: 6px; margin-top: 10px; }
+    .battle-app .skill-burst { padding: 10px 12px; grid-template-columns: 40px minmax(0, 1fr); gap: 10px; }
+    .battle-app .fx-rune { width: 40px; height: 40px; font-size: 18px; }
+    .battle-app .skill-burst strong { font-size: 16px; }
+    .battle-app .actions { min-height: 0; padding: 14px; overflow: hidden; }
+    .battle-app .actions h2 { margin-bottom: 10px; font-size: 17px; }
+    .battle-app .quick-tip { display: none; }
+    .battle-app .status-help { gap: 6px; margin-bottom: 10px; }
+    .battle-app .status-help-row { grid-template-columns: 58px minmax(0, 1fr); padding: 7px 9px; font-size: 11.5px; line-height: 1.42; }
+    .battle-app .action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .battle-app .actions .action-grid button { min-height: 58px; padding: 8px 10px; gap: 2px; }
+    .battle-app .command-label { font-size: 14px; }
+    .battle-app .command-note { font-size: 11px; line-height: 1.28; }
+    .battle-app .danger-zone { padding: 9px 10px; }
+    .battle-app .combat-drawer { top: 74px; }
+    .battle-app .combat-drawer-panel { max-height: calc(100vh - 90px); }
+    .battle-app.immersive-app .top { min-height: 48px; padding: 7px 12px; }
+    .battle-app.immersive-app .brand { display: none; }
+    .battle-app.immersive-app .top-actions { width: 100%; justify-content: flex-end; }
+    .battle-app.immersive-app .wrap { padding-top: 8px; }
+    .battle-app.immersive-app .battle-table { grid-template-rows: 124px minmax(0, 1fr) 126px; }
+    @media (max-width: 860px) {
+      .battle-app .top { min-height: 48px; padding: 7px 8px; gap: 8px; }
+      .battle-app .brand { display: none; }
+      .battle-app .brand h1 { max-width: 116px; font-size: 16px; }
+      .battle-app .brand p { display: none; }
+      .battle-app .top-actions { width: 100%; gap: 4px; justify-content: space-between; }
+      .battle-app .top-actions button { min-height: 32px; padding: 4px 6px; font-size: 11px; }
+      .battle-app .wrap { padding: 8px; }
+      .battle-app .battle-table { grid-template-rows: 118px minmax(0, 1fr) 126px; gap: 7px; }
+      .battle-app .battle-core { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; grid-template-areas: "stage" "command"; gap: 7px; padding: 8px; }
+      .battle-app .team { padding: 6px; gap: 5px; }
+      .battle-app .team-head { min-height: 20px; }
+      .battle-app .team-head h2 { font-size: 13px; }
+      .battle-app .team-head .row .pill:not(:first-child) { display: none; }
+      .battle-app .team-roster { gap: 5px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .battle-app .fighter { padding: 5px; }
+      .battle-app .fighter-main { grid-template-columns: 40px minmax(0, 1fr); gap: 5px; }
+      .battle-app .fighter-art { width: 40px; }
+      .battle-app .fighter h3 { font-size: 12px; margin-bottom: 4px; }
+      .battle-app .fighter h3 .pill { display: none; }
+      .battle-app .fighter .stats { margin-top: 4px; }
+      .battle-app .fighter .stats .pill:nth-child(n+3), .battle-app .statuses .pill:nth-child(n+3) { display: none; }
+      .battle-app .fighter .pill, .battle-app .team-head .pill { font-size: 9.5px; padding: 2px 4px; }
+      .battle-app .hpbar { height: 7px; }
+      .battle-app .active-spotlight { display: block; min-height: 0; padding: 0; overflow: hidden; }
+      .battle-app .active-spotlight > div { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 3; display: grid; gap: 4px; justify-content: stretch; padding: 10px; border: 1px solid rgba(230,192,106,.22); border-radius: 8px; background: linear-gradient(180deg, rgba(5,6,9,.22), rgba(5,6,9,.82)); box-shadow: 0 14px 28px rgba(0,0,0,.34); backdrop-filter: blur(4px); }
+      .battle-app .spotlight-frame { position: absolute; inset: 0; border-radius: inherit; }
+      .battle-app .active-spotlight h2 { font-size: 18px; margin: 0; }
+      .battle-app .active-spotlight p { display: none; }
+      .battle-app .turn-hud { gap: 4px; margin-top: 6px; }
+      .battle-app .turn-hud .pill { font-size: 9.5px; padding: 2px 5px; }
+      .battle-app .skill-burst { padding: 8px 9px; grid-template-columns: 32px minmax(0, 1fr); }
+      .battle-app .fx-rune { width: 32px; height: 32px; font-size: 15px; }
+      .battle-app .skill-burst strong { font-size: 14px; }
+      .battle-app .skill-burst .fx-copy span { font-size: 11px; }
+      .battle-app .actions { padding: 9px; }
+      .battle-app .actions h2 { margin-bottom: 7px; font-size: 14px; }
+      .battle-app .quick-tip { display: none; }
+      .battle-app .status-help { margin-bottom: 7px; }
+      .battle-app .status-help-row { grid-template-columns: 42px minmax(0, 1fr); padding: 5px 7px; font-size: 10.5px; }
+      .battle-app .action-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+      .battle-app .actions .action-grid button { min-height: 44px; padding: 6px 7px; }
+      .battle-app .command-label { font-size: 12.5px; }
+      .battle-app .command-note { font-size: 9.5px; }
+      .battle-app .danger-zone { display: none; }
+      .battle-app .combat-drawer { top: auto; bottom: 10px; left: 8px; width: min(318px, calc(100vw - 16px)); }
+    }
+    @media (min-width: 521px) and (max-width: 860px) {
+      .battle-app .battle-table { grid-template-rows: 112px minmax(0, 1fr) 116px; }
+      .battle-app .actions { padding: 10px; }
+      .battle-app .actions h2 { margin-bottom: 8px; }
+      .battle-app .action-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+      .battle-app .action-grid .judgement-action { grid-column: auto; }
+      .battle-app .actions .action-grid button { min-height: 48px; align-items: center; text-align: center; padding: 7px 6px; }
+      .battle-app .command-label { font-size: 13px; }
+      .battle-app .command-note { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const STATUS = { SEAL:"封印", OBSERVE:"觀測", CONFUSE:"混亂", SLOW:"遲緩", GUARD:"守護" };
+const APP_VERSION = "4.2.0";
+const NEG = [STATUS.SEAL, STATUS.OBSERVE, STATUS.CONFUSE, STATUS.SLOW];
+const STATUS_META = {
+  [STATUS.SEAL]: { icon:"印", tone:"bad", desc:"下次行動不能使用技能；行動結束後移除。" },
+  [STATUS.OBSERVE]: { icon:"測", tone:"bad", desc:"下一次受到傷害 +1，然後移除。" },
+  [STATUS.CONFUSE]: { icon:"亂", tone:"bad", desc:"下次指定目標時由對手選擇合法目標。" },
+  [STATUS.SLOW]: { icon:"緩", tone:"bad", desc:"下回合 SPD -1。" },
+  [STATUS.GUARD]: { icon:"護", tone:"good", desc:"可代替其他我方角色承受一次傷害。" }
+};
+const CHARS = [
+  {id:"ningyao",name:"寧曜",hp:9,atk:3,spd:2,passive:"每場1次，即將被擊倒時若已有裁定，可消耗1裁定保留1HP。",skill:{name:"寧曜裁定",cost:2,cd:2,desc:"對1敵造成3傷害並封印。"},res:{name:"裁光",desc:"技能後回復1HP。"}},
+  {id:"hengshuo",name:"衡朔",hp:8,atk:2,spd:3,passive:"每回合1次，可代替1名我方角色承受傷害。",skill:{name:"近身護衛",cost:2,cd:2,desc:"我方1角色本回合受傷-2，並移除1個觀測；若成功減傷，衡朔回復1HP。"},res:{name:"護持",desc:"技能目標獲得守護。"}},
+  {id:"youming",name:"幽冥",hp:7,atk:2,spd:4,passive:"每回合第一次受到傷害-1。",skill:{name:"幽影封步",cost:2,cd:1,desc:"對1名敵方角色造成2點傷害，並給予遲緩。"},res:{name:"暗痕",desc:"技能後目標本回合ATK-1。"}},
+  {id:"leiting",name:"雷霆",hp:8,atk:2,spd:3,passive:"普攻HP高於自己的敵人時，傷害+1。",skill:{name:"雷斬突進",cost:3,cd:2,desc:"對1敵造成4傷害。"},res:{name:"壓陣",desc:"技能後給予目標觀測。每場最多2次。"}},
+  {id:"baijian",name:"白繭",hp:8,atk:1,spd:2,passive:"回合結束時，若我方本回合受傷，回復HP最低的我方1HP。",skill:{name:"白色繭房",cost:3,cd:2,desc:"我方1角色回復3HP，並移除1負面狀態；若其HP最低，再回復1HP。"},res:{name:"包覆",desc:"技能目標獲得守護。"}},
+  {id:"dengzhen",name:"燈真",hp:7,atk:2,spd:3,passive:"回合開始時，若技能冷卻為0，我方獲得1能量。",skill:{name:"秩序重排",cost:2,cd:2,desc:"選1角色本回合SPD+2或-2；若目標是我方，回復1HP。"},res:{name:"整序",desc:"技能目標本回合受傷-1。"}},
+  {id:"ino",name:"伊諾",hp:7,atk:2,spd:3,passive:"每場2次，敵方使用技能時，可使其費用+1；若仍成功，伊諾獲1能量。",skill:{name:"弱點標記",cost:2,cd:1,desc:"給予1敵觀測；若目標已有觀測，改為造成3傷害並移除觀測。"},res:{name:"解析",desc:"技能目標本回合受傷+1。"}},
+  {id:"aila",name:"艾菈",hp:7,atk:2,spd:2,passive:"若自己沒有負面狀態，受到技能傷害-1；若有封印，回合開始時移除。",skill:{name:"靜默封存",cost:2,cd:2,desc:"給予1敵封印；若目標有觀測，額外造成2傷害。"},res:{name:"低聲",desc:"技能後獲得1能量。"}},
+  {id:"leiyouxi",name:"雷幽曦",hp:8,atk:3,spd:3,passive:"我方角色被擊倒後，雷幽曦下一次造成傷害+1。",skill:{name:"強硬破口",cost:2,cd:2,desc:"對1敵造成3傷害；若我方落後，給予混亂。"},res:{name:"反擊",desc:"技能傷害+1。"}},
+  {id:"baidengling",name:"白燈澪",hp:7,atk:1,spd:2,passive:"每場1次，即將被擊倒時保留1HP；下回合不能攻擊。",skill:{name:"希望微光",cost:2,cd:2,desc:"我方全體回復1HP；HP最低我方額外回復1HP；若我方落後，額外獲得1裁定。"},res:{name:"餘光",desc:"技能後，HP最低的我方角色移除1個負面狀態。"}},
+  {id:"yiaiqian",name:"伊艾栞",hp:7,atk:2,spd:2,passive:"任一角色技能成功結算後，獲得1紀錄，最多3個。",skill:{name:"重放紀錄",cost:2,cd:1,desc:"消耗1紀錄，複製上一個成功結算技能的基礎傷害或治癒值。"},res:{name:"續寫",desc:"技能後獲得1能量。"}},
+  {id:"weixiang",name:"未響",hp:9,atk:2,spd:1,passive:"我方每回合第一次受到3以上傷害時，該傷害-1。",skill:{name:"沉默支點",cost:2,cd:1,desc:"我方1角色獲得守護並回復1HP。"},res:{name:"支點",desc:"技能目標本回合下次受傷額外-1。"}},
+  {id:"xiaomo",name:"小莫",hp:6,atk:2,spd:4,passive:"每場1次，即將被擊倒時擲硬幣；正面保留1HP，反面獲得1裁定。",skill:{name:"欸我亂講的",cost:1,cd:1,desc:"指定1敵擲硬幣；正面造成4傷害，反面給予混亂，自己受1傷害。"},res:{name:"下注",desc:"若本次未造成傷害，額外給予遲緩。"}},
+  {id:"huiyin",name:"迴音",hp:7,atk:1,spd:3,passive:"每回合1次，我方獲得負面狀態時，可轉移給自己。",skill:{name:"回聲模仿",cost:2,cd:2,desc:"複製我方上一個可被複製且成功結算的技能；若沒有可複製技能，改為對1敵造成2傷害。"},res:{name:"回聲",desc:"此技能費用-1。"}},
+  {id:"yingli",name:"映璃",hp:7,atk:2,spd:4,passive:"不能被觀測；每回合第一次成為技能目標時，該傷害-2。",skill:{name:"視線偏移",cost:2,cd:2,desc:"給予1敵混亂；該敵本回合下次攻擊不能指定映璃。若目標已有混亂，額外造成2傷害。"},res:{name:"偏移",desc:"技能後映璃本回合受傷-1。"}},
+  {id:"tianxun",name:"天訊",hp:7,atk:1,spd:4,passive:"回合開始時，選1角色SPD+1；若目標是敵方，其本回合受傷+1。",skill:{name:"規則補充",cost:2,cd:2,desc:"選1項：普攻傷害+1、技能傷害-1、我方全體SPD+1、最低SPD先行動。"},res:{name:"加碼",desc:"可選2項，但天訊本回合不能防禦。"}},
+  {id:"xuntian",name:"訊天",hp:7,atk:3,spd:2,passive:"攻擊被封印或混亂的敵人時，傷害+1。",skill:{name:"紅色爆點",cost:3,cd:2,desc:"對1敵造成5傷害；下回合使用技能費用+1。"},res:{name:"收束",desc:"技能後若目標HP為3以下，額外造成1傷害。"}},
+  {id:"zuozhe",name:"作者",hp:7,atk:2,spd:1,passive:"每場1次，即將被擊倒時，敵方全體受到1傷害；HP最低敵方額外1傷。若因此擊倒敵方角色，作者獲得1裁定。",skill:{name:"我加一條設定",cost:2,cd:2,desc:"選1敵擲硬幣；正面給予混亂，反面令其本回合與下回合ATK/SPD-1。"},res:{name:"重寫",desc:"技能後，若目標有混亂，額外給予觀測。"}}
+];
+
+const app = document.querySelector("#app");
+const draftSeq = ["p1","p2","p2","p1","p1","p2"];
+const initialRoom = new URLSearchParams(location.search).get("room")?.trim().toUpperCase() || "";
+let state = freshState();
+let dialog = null;
+let view = null;
+let ui = { combatPanelOpen: false, fullscreen: false };
+let releaseState = { checked:false, checking:false, data:null, error:"" };
+let pollTimer = null;
+let lastLayoutKey = "";
+let net = { mode:"local", room:"", seat:"", rev:0, polling:false, status:initialRoom ? `收到房間邀請：${initialRoom}` : "離線" };
+
+function freshState() {
+  return {
+    screen:"menu", round:0, draftTurn:"p1", pickIndex:0, p1Draft:[], p2Draft:[],
+    players:null, queue:[], active:null, winner:null, logs:["歡迎來到 LuxFatum v4.2.0 線上版。"],
+    lastSkill:null, lastCopyableSkill:{p1:null,p2:null}, pendingSkill:null, pendingConfuseAttack:null,
+    lowestFirst:false, tianAtkBuff:false, tianSkillDebuff:false, lastHit:null, shakeStamp:0, fx:null
+  };
+}
+const byId = id => CHARS.find(c => c.id === id);
+const cardImage = id => `assets/portraits/${id}.jpg`;
+const artFocus = id => ({
+  ningyao:"center 18%", hengshuo:"center 14%", youming:"center 16%", leiting:"center 14%",
+  baijian:"center 16%", dengzhen:"center 14%", ino:"center 14%", aila:"center 16%",
+  leiyouxi:"center 18%", baidengling:"center 16%", yiaiqian:"center 15%", weixiang:"center 14%",
+  xiaomo:"center 18%", huiyin:"center 14%", yingli:"center 16%", tianxun:"center 14%",
+  xuntian:"center 14%", zuozhe:"center 14%"
+}[id] || "center 16%");
+const THEME_SRC = "assets/luxfatum-theme.mp3";
+const audio = {
+  ctx:null, music:false, sfx:true, timer:null, beat:0, track:null,
+  ensure(){
+    if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(this.ctx.state === "suspended") this.ctx.resume();
+    return this.ctx;
+  },
+  ensureTheme(){
+    if(!this.track){
+      this.track = new Audio(THEME_SRC);
+      this.track.loop = true;
+      this.track.preload = "auto";
+      this.track.volume = .62;
+      this.track.load();
+    }
+    return this.track;
+  },
+  tone(freq, dur=.16, type="sine", vol=.08, when=0){
+    const ctx = this.ensure(), now = ctx.currentTime + when;
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(vol, now + .015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+    osc.connect(gain).connect(ctx.destination); osc.start(now); osc.stop(now + dur + .03);
+  },
+  noise(dur=.12, vol=.08){
+    if(!this.sfx) return;
+    const ctx = this.ensure(), size = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<size;i++) data[i] = (Math.random() * 2 - 1) * (1 - i / size);
+    const src = ctx.createBufferSource(), gain = ctx.createGain(), filter = ctx.createBiquadFilter();
+    filter.type = "bandpass"; filter.frequency.value = 820;
+    gain.gain.value = vol;
+    src.buffer = buffer; src.connect(filter).connect(gain).connect(ctx.destination);
+    src.start();
+  },
+  play(name){
+    if(!this.sfx) return;
+    const map = {
+      ui:()=>this.tone(520,.07,"triangle",.035),
+      pick:()=>{ this.tone(660,.1,"sine",.055); this.tone(990,.12,"sine",.035,.06); },
+      hit:()=>{ this.noise(.13,.13); this.tone(110,.18,"sawtooth",.06); },
+      skill:()=>{ this.tone(392,.11,"triangle",.055); this.tone(587,.14,"triangle",.05,.06); this.tone(880,.18,"sine",.04,.13); },
+      heal:()=>{ this.tone(523,.12,"sine",.04); this.tone(659,.16,"sine",.045,.08); this.tone(784,.2,"sine",.035,.16); },
+      guard:()=>{ this.tone(220,.12,"square",.045); this.tone(330,.16,"triangle",.04,.06); },
+      ko:()=>{ this.tone(196,.18,"sawtooth",.07); this.tone(98,.34,"sawtooth",.05,.12); },
+      win:()=>{ [523,659,784,1046].forEach((n,i)=>this.tone(n,.22,"triangle",.055,i*.09)); },
+      rest:()=>this.tone(330,.18,"sine",.04)
+    };
+    (map[name] || map.ui)();
+  },
+  toggle(){
+    this.music = !this.music;
+    if(this.music) this.startMusic(); else this.stopMusic();
+    render();
+  },
+  startMusic(){
+    const track = this.ensureTheme();
+    track.volume = .62;
+    const playPromise = track.play();
+    if(playPromise) playPromise.catch(() => {
+      this.music = false;
+      net.status = "再點一次即可播放主題曲";
+      render();
+    });
+  },
+  stopMusic(){
+    if(this.timer){ clearInterval(this.timer); this.timer = null; }
+    if(this.track) this.track.pause();
+  }
+};
+const other = p => p === "p1" ? "p2" : "p1";
+const clone = x => JSON.parse(JSON.stringify(x));
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const coin = () => Math.random() >= .5;
+const alive = team => team.filter(c => c.hpNow > 0);
+const sideName = p => p === "p1" ? "P1" : "P2";
+function statusClass(s){ return [STATUS.SEAL, STATUS.OBSERVE, STATUS.CONFUSE, STATUS.SLOW].includes(s) ? "bad" : "good"; }
+function statusPill(s){
+  const meta = STATUS_META[s] || { icon:s.slice(0,1), tone:statusClass(s), desc:s };
+  return `<span class="pill status-pill ${meta.tone}" title="${meta.desc}"><span class="status-icon">${meta.icon}</span>${s}</span>`;
+}
+function statusLine(c){
+  const flags = [
+    c.flags.defended ? `<span class="pill good" title="本回合已防禦：受傷 -2，免疫下一個負面狀態。"><span class="status-icon">防</span>防禦</span>` : "",
+    c.flags.noAttack ? `<span class="pill bad" title="下次行動不能攻擊。"><span class="status-icon">禁</span>禁攻</span>` : ""
+  ].filter(Boolean);
+  return [...flags, ...c.statuses.map(statusPill)].join("");
+}
+function setFx(kind, title, sub){
+  state.fx = { kind, title, sub, stamp:Date.now() };
+}
+function actionHint(a){
+  const p = state.players[a.owner];
+  if(a.statuses.includes(STATUS.SEAL)) return `${a.name} 目前被封印，這次不能放技能；攻擊、休息或防禦會比較穩。`;
+  const tips = [];
+  if(a.hpNow <= Math.ceil(a.maxHp / 3)) tips.push("HP 偏低，防禦或休息能拉長戰線");
+  if(a.cd <= 0 && p.energy >= skillCost(a,false)) tips.push("能量足夠，可以考慮技能或共鳴");
+  else if(a.cd > 0) tips.push(`技能還在冷卻 ${a.cd}，先用攻擊或休息整理節奏`);
+  else tips.push("能量不足，攻擊或休息可以補節奏");
+  if(p.marks > 0 && !p.judgementUsed) tips.push("有裁定可用，關鍵時可補傷害或救場");
+  return tips.join("；") + "。";
+}
+function log(msg){ state.logs.push(msg); if(state.logs.length > 180) state.logs.shift(); }
+function canControl(side){ return net.mode === "local" || net.seat === side; }
+function activeF(){ return state.active ? state.players[state.active.side].team.find(c => c.id === state.active.id) : null; }
+function currentAtk(c){ return Math.max(0, c.atk + (c.flags.atkMod || 0)); }
+function currentSpd(c){ return Math.max(0, c.spd + (c.flags.spdMod || 0) - (c.statuses.includes(STATUS.SLOW) ? 1 : 0)); }
+function deadCount(side){ return 3 - alive(state.players[side].team).length; }
+function trailing(side){ return deadCount(side) > deadCount(other(side)); }
+
+function fighter(charId, owner) {
+  const c = byId(charId);
+  return {
+    ...clone(c), owner, maxHp:c.hp, hpNow:c.hp, cd:0, statuses:[],
+    flags:{ defended:false, immuneNextDebuff:false, passiveUsed:false, tookDamage:false, firstDamageReduced:false,
+      noAttack:false, noDefend:false, cannotAttackYingli:false, skillTargeted:false, atkMod:0, spdMod:0, damageTakenMod:0,
+      skillCostUp:0, noResNextSkill:false, nextRoundAtkMod:0, nextRoundSpdMod:0, buffDmgNext:0, records:0,
+      hengshuoGuarded:false, hengshuoGuardUsed:false, hengshuoRedirectUsed:false, huiyinUsed:false, leitingResCount:0, inoUsed:0 }
+  };
+}
+
+function stopPolling(){ net.polling = false; if(pollTimer){ clearTimeout(pollTimer); pollTimer = null; } }
+function startPolling(){ if(pollTimer) clearTimeout(pollTimer); net.polling = true; poll(); }
+function resetToMenu(){ stopPolling(); view=null; state=freshState(); net={mode:"local",room:"",seat:"",rev:0,polling:false,status:"待機"}; render(); }
+function startLocal(){ audio.play("ui"); view=null; stopPolling(); state = freshState(); state.screen = "draft"; net = { mode:"local", room:"", seat:"", rev:0, polling:false, status:"本機雙人" }; render(); }
+async function createRoom(){
+  audio.play("ui");
+  view=null;
+  state = freshState(); state.screen = "draft";
+  const res = await api("/api/create", { state });
+  if(!res.ok) return alert(res.error || "建立失敗");
+  net = { mode:"online", room:res.room, seat:"p1", rev:res.rev, polling:true, status:"已建立房間" };
+  history.replaceState(null, "", location.pathname);
+  startPolling(); render();
+}
+async function joinRoom(roomOverride){
+  audio.play("ui");
+  view=null;
+  const room = (roomOverride || document.querySelector("#roomInput")?.value || "").trim().toUpperCase();
+  if(!room) return alert("請輸入房號");
+  const res = await api("/api/join", { room });
+  if(!res.ok) return alert(res.error || "加入失敗");
+  state = res.state || freshState();
+  net = { mode:"online", room:res.room, seat:"p2", rev:res.rev, polling:true, status:"已加入房間" };
+  history.replaceState(null, "", location.pathname);
+  startPolling(); render();
+}
+async function api(url, body){
+  try {
+    const res = await fetch(url, { method:"POST", headers:{ "content-type":"application/json" }, body:JSON.stringify(body || {}) });
+    return await res.json();
+  } catch(e) { return { ok:false, error:e.message }; }
+}
+async function sync(){
+  if(net.mode !== "online") return;
+  const res = await api("/api/state", { room:net.room, rev:net.rev, state });
+  if(res.ok){ net.rev = res.rev; state = res.state; net.status = "已同步"; }
+  else if(res.state){ net.rev = res.rev; state = res.state; net.status = "已拉回最新狀態"; }
+  else { net.status = res.error || "同步失敗"; }
+  render();
+}
+async function poll(){
+  if(net.mode !== "online" || !net.polling) return;
+  try {
+    const res = await fetch(`/api/state?room=${encodeURIComponent(net.room)}`);
+    const data = await res.json();
+    if(data.ok && data.rev > net.rev){ net.rev = data.rev; state = data.state; render(); }
+  } catch(e){ net.status = "同步中斷，稍後重試"; }
+  pollTimer = setTimeout(poll, 800);
+}
+async function forceSync(){
+  if(net.mode !== "online" || !net.room) return;
+  try {
+    const res = await fetch(`/api/state?room=${encodeURIComponent(net.room)}`);
+    const data = await res.json();
+    if(data.ok){ net.rev = data.rev; state = data.state; net.status = "已重新同步"; }
+    else net.status = data.error || "重新同步失敗";
+  } catch(e) {
+    net.status = "連線中斷，請再按一次重新同步";
+  }
+  render();
+}
+async function checkForUpdates(manual=false){
+  if(releaseState.checking) return;
+  releaseState.checking = true;
+  releaseState.error = "";
+  if(manual) render();
+  try {
+    const res = await fetch(`/api/version?client=${encodeURIComponent(APP_VERSION)}`, { cache:"no-store" });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error || "版本檢查失敗");
+    releaseState = { checked:true, checking:false, data, error:"" };
+  } catch(e) {
+    releaseState = { ...releaseState, checked:true, checking:false, error:e.message || "版本檢查失敗" };
+  }
+  render();
+}
+function downloadWindows(){ audio.play("ui"); location.href = "/download/windows.zip"; }
+function downloadPackage(){ audio.play("ui"); location.href = "/download/package.zip"; }
+function openVersionInfo(){ audio.play("ui"); checkForUpdates(true); }
+async function commit(){ render(); await sync(); }
+function showRules(){ audio.play("ui"); view = "rules"; dialog = null; render(); }
+function closeRules(){ audio.play("ui"); view = null; render(); }
+function inviteLink(){
+  if(!net.room) return location.href;
+  return `${location.origin}${location.pathname}?room=${encodeURIComponent(net.room)}`;
+}
+async function copyInvite(){
+  const text = `LuxFatum 對戰房號：${net.room}\n直接加入：${inviteLink()}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    net.status = "已複製邀請連結";
+  } catch(e) {
+    prompt("複製邀請資訊", text);
+  }
+  render();
+}
+async function copyRoom(){
+  try {
+    await navigator.clipboard.writeText(net.room);
+    net.status = "已複製房號";
+  } catch(e) {
+    prompt("複製房號", net.room);
+  }
+  render();
+}
+
+function pick(id){
+  audio.play("pick");
+  if(state.screen !== "draft" || !canControl(state.draftTurn)) return;
+  if(state.p1Draft.includes(id) || state.p2Draft.includes(id)) return;
+  state[state.draftTurn + "Draft"].push(id);
+  log(`${sideName(state.draftTurn)} 選擇 ${byId(id).name}。`);
+  state.pickIndex += 1;
+  if(state.pickIndex >= 6) startBattle();
+  else state.draftTurn = draftSeq[state.pickIndex];
+  commit();
+}
+function startBattle(){
+  state.players = {
+    p1:{ energy:2, marks:0, judgementUsed:false, resUsed:0, openingDefenseUsed:false, team:state.p1Draft.map(id=>fighter(id,"p1")) },
+    p2:{ energy:2, marks:0, judgementUsed:false, resUsed:0, openingDefenseUsed:false, team:state.p2Draft.map(id=>fighter(id,"p2")) }
+  };
+  state.screen = "battle"; state.round = 0; nextRound();
+}
+function nextRound(){
+  state.round += 1; state.lowestFirst = false; state.tianAtkBuff = false; state.tianSkillDebuff = false;
+  for(const side of ["p1","p2"]){
+    const p = state.players[side];
+    p.energy = clamp(p.energy + 2, 0, 6); p.judgementUsed = false; p.resUsed = 0;
+    if(state.round === 1) p.openingDefenseUsed = false;
+    for(const c of alive(p.team)){
+      c.cd = Math.max(0, c.cd - 1);
+      c.statuses = c.statuses.filter(s => s !== STATUS.SLOW);
+      Object.assign(c.flags, { defended:false, immuneNextDebuff:false, tookDamage:false, firstDamageReduced:false, noDefend:false,
+        cannotAttackYingli:false, skillTargeted:false, atkMod:0, spdMod:0, damageTakenMod:0, hengshuoGuarded:false, hengshuoGuardUsed:false, hengshuoRedirectUsed:false });
+      c.flags.huiyinUsed = false;
+      if(c.flags.nextRoundAtkMod){ c.flags.atkMod += c.flags.nextRoundAtkMod; c.flags.nextRoundAtkMod = 0; }
+      if(c.flags.nextRoundSpdMod){ c.flags.spdMod += c.flags.nextRoundSpdMod; c.flags.nextRoundSpdMod = 0; }
+      if(c.flags.noAttack) c.flags.noAttack = false;
+      if(c.id === "aila" && c.statuses.includes(STATUS.SEAL)){ c.statuses = c.statuses.filter(s=>s!==STATUS.SEAL); log("艾菈移除自身封印。"); }
+    }
+  }
+  for(const side of ["p1","p2"]){
+    const p = state.players[side];
+    const deng = alive(p.team).find(c => c.id === "dengzhen" && c.cd === 0);
+    if(deng){ p.energy = clamp(p.energy + 1, 0, 6); log(`${sideName(side)} 因燈真獲得1能量。`); }
+    const tian = alive(p.team).find(c => c.id === "tianxun");
+    if(tian){
+      const targets = [...alive(p.team), ...alive(state.players[other(side)].team)];
+      const target = targets[Math.floor(Math.random() * targets.length)];
+      if(target){ target.flags.spdMod += 1; if(target.owner !== side) target.flags.damageTakenMod += 1; log(`天訊選中 ${target.name}：SPD+1${target.owner!==side ? "，受傷+1" : ""}。`); }
+    }
+  }
+  buildQueue(); state.active = state.queue[0] || null; log(`第 ${state.round} 回合開始。`);
+}
+function buildQueue(){
+  const list = [];
+  for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)) list.push({ side, id:c.id, spd:currentSpd(c), hp:c.hpNow });
+  list.sort((a,b) => state.lowestFirst ? a.spd-b.spd || a.hp-b.hp || a.id.localeCompare(b.id) : b.spd-a.spd || a.hp-b.hp || a.id.localeCompare(b.id));
+  state.queue = list;
+}
+function afterAction(){
+  const p1 = alive(state.players.p1.team).length, p2 = alive(state.players.p2.team).length;
+  if(!p1 && !p2) state.winner = "平手";
+  else if(!p1) state.winner = "P2";
+  else if(!p2) state.winner = "P1";
+  if(state.winner){ audio.play("win"); commit(); return; }
+  state.queue.shift();
+  state.queue = state.queue.filter(q => state.players[q.side].team.find(c => c.id === q.id && c.hpNow > 0));
+  if(!state.queue.length) endRound();
+  else state.active = state.queue[0];
+  commit();
+}
+function endRound(){
+  for(const side of ["p1","p2"]){
+    const p = state.players[side], bai = alive(p.team).find(c=>c.id==="baijian");
+    if(bai && p.team.some(c=>c.flags.tookDamage)){
+      const t = alive(p.team).sort((a,b)=>a.hpNow-b.hpNow)[0];
+      if(t) heal(t,1,"白繭照顧");
+    }
+  }
+  nextRound();
+}
+
+function heal(target, amount, source){
+  if(!target || target.hpNow <= 0) return;
+  const before = target.hpNow; target.hpNow = clamp(target.hpNow + amount, 0, target.maxHp);
+  log(`${source}：${target.name} 回復 ${target.hpNow - before} HP。`);
+  if(target.hpNow > before){ setFx("heal", source, `${target.name} +${target.hpNow - before} HP`); audio.play("heal"); }
+}
+function removeNeg(target){
+  const s = target.statuses.find(x => NEG.includes(x));
+  if(s){ target.statuses = target.statuses.filter(x=>x!==s); log(`${target.name} 移除 ${s}。`); }
+  return s;
+}
+function addStatus(source, target, status){
+  if(!target || target.hpNow <= 0) return;
+  if(status === STATUS.OBSERVE && target.id === "yingli"){ log("映璃不能被觀測。"); return; }
+  if(NEG.includes(status)){
+    const hui = alive(state.players[target.owner].team).find(c => c.id === "huiyin" && c.id !== target.id && !c.flags.huiyinUsed);
+    if(hui){ hui.flags.huiyinUsed = true; target = hui; log("迴音將負面狀態轉移給自己。"); }
+  }
+  if(NEG.includes(status) && target.flags.immuneNextDebuff){ target.flags.immuneNextDebuff = false; log(`${target.name} 免疫 ${status}。`); return; }
+  if(!target.statuses.includes(status)){ target.statuses.push(status); log(`${source}給予 ${target.name} ${status}。`); setFx("status", source, `${target.name} 獲得 ${status}`); }
+}
+function redirectTarget(target, dmg){
+  const team = state.players[target.owner].team;
+  const guard = team.find(c => c.id !== target.id && c.hpNow > 0 && c.statuses.includes(STATUS.GUARD));
+  if(guard && dmg > 0){ guard.statuses = guard.statuses.filter(s=>s!==STATUS.GUARD); log(`${guard.name} 以守護代替 ${target.name} 承受傷害。`); return guard; }
+  const heng = team.find(c => c.id === "hengshuo" && c.id !== target.id && c.hpNow > 0 && !c.flags.hengshuoRedirectUsed);
+  if(heng && dmg > 0){ heng.flags.hengshuoRedirectUsed = true; log(`衡朔代替 ${target.name} 承受傷害。`); return heng; }
+  return target;
+}
+function damage(source, target, amount, opts={}){
+  if(!target || target.hpNow <= 0) return 0;
+  let dmg = amount; const owner = target.owner; const label = opts.label || source?.name || "效果";
+  if(target.statuses.includes(STATUS.OBSERVE) && target.id !== "yingli"){ dmg += 1; target.statuses = target.statuses.filter(s=>s!==STATUS.OBSERVE); log(`${target.name} 觀測觸發，傷害+1。`); }
+  dmg += target.flags.damageTakenMod || 0;
+  if(target.flags.hengshuoGuarded && !target.flags.hengshuoGuardUsed){ target.flags.hengshuoGuardUsed = true; const h = state.players[owner].team.find(c=>c.id==="hengshuo"&&c.hpNow>0); if(h) heal(h,1,"衡朔近身護衛"); }
+  if(opts.skill && state.tianSkillDebuff) dmg -= 1;
+  if(target.id === "youming" && !target.flags.firstDamageReduced){ target.flags.firstDamageReduced = true; dmg -= 1; log("幽冥第一次受傷-1。"); }
+  if(opts.skill && target.id === "aila" && !target.statuses.some(s=>NEG.includes(s))) dmg -= 1;
+  if(opts.skill && target.id === "yingli" && !target.flags.skillTargeted){ target.flags.skillTargeted = true; dmg -= 2; }
+  const wei = alive(state.players[owner].team).find(c=>c.id==="weixiang");
+  if(wei && amount >= 3 && !wei.flags.firstDamageReduced){ wei.flags.firstDamageReduced = true; dmg -= 1; log("未響使首次3以上傷害-1。"); }
+  if(target.flags.defended) dmg -= 2;
+  dmg = Math.max(1, dmg);
+  const actual = redirectTarget(target, dmg);
+  const p = state.players[actual.owner];
+  if(state.round === 1 && !p.openingDefenseUsed){ p.openingDefenseUsed = true; dmg = Math.max(1, dmg - 1); log("開局防線：首次受傷-1。"); }
+  if(source?.flags?.confuseDamageCap && actual.owner === source.owner) dmg = Math.min(dmg, 1);
+  const before = actual.hpNow; actual.hpNow = Math.max(0, actual.hpNow - dmg); actual.flags.tookDamage = true;
+  state.lastHit = { owner:actual.owner, id:actual.id, stamp:Date.now() };
+  state.shakeStamp = Date.now();
+  log(`${label} 對 ${actual.name} 造成 ${before - actual.hpNow} 傷害。`);
+  if(before > actual.hpNow){ setFx(opts.skill ? "skill" : "damage", label, `${actual.name} -${before - actual.hpNow} HP`); audio.play("hit"); }
+  if(actual.hpNow <= 0) knockout(actual, source);
+  return before - actual.hpNow;
+}
+function knockout(c, source){
+  audio.play("ko");
+  const p = state.players[c.owner];
+  if(c.id === "ningyao" && !c.flags.passiveUsed && p.marks > 0){ c.flags.passiveUsed = true; p.marks -= 1; c.hpNow = 1; log("寧曜消耗1裁定保留1HP。"); return; }
+  if(c.id === "baidengling" && !c.flags.passiveUsed){ c.flags.passiveUsed = true; c.flags.noAttack = true; c.hpNow = 1; log("白燈澪保留1HP，下回合不能攻擊。"); return; }
+  if(c.id === "xiaomo" && !c.flags.passiveUsed){ c.flags.passiveUsed = true; if(coin()){ c.hpNow = 1; log("小莫硬幣正面，保留1HP。"); return; } p.marks = clamp(p.marks+1,0,3); log("小莫反面，獲得1裁定。"); }
+  if(c.id === "zuozhe" && !c.flags.passiveUsed){
+    c.flags.passiveUsed = true; const enemies = alive(state.players[other(c.owner)].team); const min = Math.min(...enemies.map(e=>e.hpNow));
+    for(const e of enemies) damage(c, e, e.hpNow === min ? 2 : 1, { label:"作者自爆" });
+  }
+  const lei = alive(p.team).find(x=>x.id==="leiyouxi"); if(lei) lei.flags.buffDmgNext += 1;
+  p.marks = clamp(p.marks+1,0,3); log(`${c.name} 被擊倒，${sideName(c.owner)} 獲得1裁定。`);
+  if(source?.id === "zuozhe" && source.owner !== c.owner){ state.players[source.owner].marks = clamp(state.players[source.owner].marks+1,0,3); log("作者自爆擊倒敵方，獲得1裁定。"); }
+}
+
+function requestAttack(){
+  audio.play("ui");
+  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.flags.noAttack || state.pendingConfuseAttack) return;
+  if(actor.statuses.includes(STATUS.CONFUSE)){
+    state.pendingConfuseAttack = { actorSide:actor.owner, actorId:actor.id, action:"attack" };
+    log(`${actor.name} 因混亂，攻擊目標改由對方指定。`);
+    closeDialog(); commit(); return;
+  }
+  openDialog("attack");
+}
+function performAttack(actor, target, confused=false){
+  if(!actor || !target || actor.flags.noAttack) return false;
+  if(actor.flags.cannotAttackYingli && target.id === "yingli"){ alert("不能指定映璃"); return false; }
+  if(confused || actor.statuses.includes(STATUS.CONFUSE)){
+    actor.statuses = actor.statuses.filter(s=>s!==STATUS.CONFUSE);
+    log(`${actor.name} 混亂發作，攻擊了 ${target.name}。`);
+  }
+  actor.flags.confuseDamageCap = !!(confused && target.owner === actor.owner);
+  let dmg = currentAtk(actor);
+  if(actor.id === "leiting" && target.hpNow > actor.hpNow) dmg += 1;
+  if(actor.id === "xuntian" && (target.statuses.includes(STATUS.SEAL) || target.statuses.includes(STATUS.CONFUSE))) dmg += 1;
+  if(actor.flags.buffDmgNext){ dmg += actor.flags.buffDmgNext; actor.flags.buffDmgNext = 0; }
+  if(state.tianAtkBuff) dmg += 1;
+  damage(actor, target, dmg, { label:`${actor.name}普攻` });
+  actor.flags.confuseDamageCap = false;
+  return true;
+}
+function attack(targetKey){
+  const actor = activeF(); if(!actor || !canControl(actor.owner)) return;
+  let target = parseTarget(targetKey); if(!target) return;
+  if(!performAttack(actor, target, false)) return;
+  clearSeal(actor); closeDialog(); afterAction();
+}
+function decideConfuseAttack(targetKey){
+  const pending = state.pendingConfuseAttack;
+  if(!pending || !canControl(other(pending.actorSide))) return;
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId && c.hpNow>0);
+  const target = parseTarget(targetKey);
+  if(!actor || !target) return;
+  if(actor.flags.cannotAttackYingli && target.id === "yingli"){ alert("不能指定映璃"); return; }
+  state.pendingConfuseAttack = null;
+  if(pending.action === "skill"){
+    executeSkill(targetKey, {...pending.opts, actorId:pending.actorId, confuseTargetChosen:true});
+    return;
+  }
+  if(!performAttack(actor, target, true)){ state.pendingConfuseAttack = pending; return; }
+  clearSeal(actor); closeDialog(); afterAction();
+}
+function defend(){
+  audio.play("guard");
+  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.flags.noDefend) return;
+  actor.flags.defended = true; actor.flags.immuneNextDebuff = true; log(`${actor.name} 防禦。`);
+  clearSeal(actor); closeDialog(); afterAction();
+}
+function rest(){
+  audio.play("rest");
+  const actor = activeF(); if(!actor || !canControl(actor.owner)) return;
+  heal(actor,1,"休息"); removeNeg(actor); closeDialog(); afterAction();
+}
+function clearSeal(actor){ if(actor.statuses.includes(STATUS.SEAL)){ actor.statuses = actor.statuses.filter(s=>s!==STATUS.SEAL); log(`${actor.name} 行動結束，封印解除。`); } }
+function surrender(side){
+  audio.play("ui");
+  if(state.screen !== "battle" || state.winner) return;
+  if(!canControl(side)) return;
+  const sideLabel = sideName(side);
+  if(!confirm(`${sideLabel} 確定要投降嗎？對方會立即獲勝。`)) return;
+  state.pendingSkill = null;
+  state.pendingConfuseAttack = null;
+  dialog = null;
+  state.winner = sideName(other(side));
+  log(`${sideLabel} 投降，${state.winner} 獲勝。`);
+  commit();
+}
+function skillCost(actor, res){ let cost = actor.skill.cost + (actor.flags.skillCostUp || 0); if(res && actor.skill.cost === 1) cost += 1; if(res && actor.id === "huiyin") cost -= 1; return Math.max(0,cost); }
+function enemyInoFor(actor){
+  return alive(state.players[other(actor.owner)].team).find(c=>c.id==="ino" && c.flags.inoUsed < 2);
+}
+function tianChoicesOk(actor, res, choices){
+  if(actor.id !== "tianxun") return true;
+  const max = res ? 2 : 1;
+  if(!choices?.length){ alert("天訊至少要選 1 項規則補充。"); return false; }
+  if(choices.length > max){ alert(`天訊${res ? "使用共鳴" : "未使用共鳴"}時最多只能選 ${max} 項。`); return false; }
+  return true;
+}
+
+function useSkill(targetKey, opts={}){
+  audio.play("skill");
+  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.cd > 0 || actor.statuses.includes(STATUS.SEAL)) return;
+  const p = state.players[actor.owner]; let res = !!opts.res;
+  if(res && p.resUsed >= 2) return alert("本回合共鳴已達上限");
+  if(res && !alive(p.team).some(c=>c.id!==actor.id)) return alert("需要至少1名其他我方存活才能共鳴");
+  if(actor.flags.noResNextSkill && res){ actor.flags.noResNextSkill = false; res = false; log("裁定封殺：本次技能不能共鳴。"); }
+  opts = {...opts, res};
+  if(!tianChoicesOk(actor, res, opts.choices || [])) return;
+  if(actor.statuses.includes(STATUS.CONFUSE) && skillFilter(actor) !== "none" && !opts.confuseTargetChosen){
+    state.pendingConfuseAttack = { actorSide:actor.owner, actorId:actor.id, action:"skill", opts };
+    log(`${actor.name} 因混亂，技能目標改由對方指定。`);
+    closeDialog(); commit(); return;
+  }
+  const enemyIno = enemyInoFor(actor);
+  if(enemyIno && opts.inoDecision === undefined){
+    state.pendingSkill = { actorSide: actor.owner, actorId: actor.id, targetKey, opts };
+    log(`${enemyIno.name} 可以選擇是否干涉 ${actor.name} 的技能。`);
+    closeDialog();
+    commit();
+    return;
+  }
+  executeSkill(targetKey, opts);
+}
+
+function decideIno(useInterference){
+  const pending = state.pendingSkill;
+  if(!pending || !canControl(other(pending.actorSide))) return;
+  state.pendingSkill = null;
+  executeSkill(pending.targetKey, {...pending.opts, actorId: pending.actorId, inoDecision: !!useInterference});
+}
+
+function executeSkill(targetKey, opts={}){
+  const actor = activeF(); if(!actor || actor.id !== opts.actorId && opts.actorId) return;
+  const p = state.players[actor.owner]; let res = !!opts.res;
+  let cost = skillCost(actor, res);
+  const enemyIno = enemyInoFor(actor);
+  let inoApplied = false;
+  if(opts.inoDecision && enemyIno){ cost += 1; enemyIno.flags.inoUsed += 1; inoApplied = true; log(`伊諾選擇干涉：${actor.name} 技能費用 +1。`); }
+  else if(enemyIno){ log("伊諾選擇不干涉。"); }
+  if(p.energy < cost){
+    log(`${actor.name} 因能量不足，技能發動失敗。`);
+    closeDialog(); afterAction(); return;
+  }
+  const target = parseTarget(targetKey);
+  const confusedSkill = !!opts.confuseTargetChosen && target;
+  if(confusedSkill){
+    actor.statuses = actor.statuses.filter(s=>s!==STATUS.CONFUSE);
+    actor.flags.confuseDamageCap = target.owner === actor.owner;
+    log(`${actor.name} 混亂發作，技能指定了 ${target.name}。`);
+  }
+  p.energy -= cost; actor.cd = actor.skill.cd; actor.flags.skillCostUp = 0; if(res) p.resUsed += 1;
+  const ok = resolveSkill(actor, target, res, opts);
+  actor.flags.confuseDamageCap = false;
+  if(!ok){
+    p.energy = clamp(p.energy + cost, 0, 6);
+    actor.cd = 0;
+    if(res) p.resUsed = Math.max(0, p.resUsed - 1);
+    if(inoApplied) enemyIno.flags.inoUsed = Math.max(0, enemyIno.flags.inoUsed - 1);
+    log(`${actor.name} 技能目標或條件不合法，未消耗行動。`);
+    closeDialog(); commit(); return;
+  }
+  if(ok && opts.inoDecision && enemyIno){ state.players[enemyIno.owner].energy = clamp(state.players[enemyIno.owner].energy+1,0,6); log("伊諾干涉成功後獲得1能量。"); }
+  if(ok){ for(const side of ["p1","p2"]){ const y = alive(state.players[side].team).find(c=>c.id==="yiaiqian"); if(y) y.flags.records = clamp((y.flags.records||0)+1,0,3); } }
+  closeDialog(); afterAction();
+}
+function resolveSkill(a,t,res,opts){
+  const name = `${a.name}「${a.skill.name}」`; let record = null;
+  switch(a.id){
+    case "ningyao": damage(a,t,3,{skill:true,label:name}); addStatus(name,t,STATUS.SEAL); if(res) heal(a,1,a.res.name); record={kind:"damage",amount:3}; break;
+    case "hengshuo": if(!t||t.owner!==a.owner)return false; t.flags.damageTakenMod-=2; t.flags.hengshuoGuarded=true; t.statuses=t.statuses.filter(s=>s!==STATUS.OBSERVE); if(res)addStatus(a.res.name,t,STATUS.GUARD); break;
+    case "youming": damage(a,t,2,{skill:true,label:name}); addStatus(name,t,STATUS.SLOW); if(res)t.flags.atkMod-=1; record={kind:"damage",amount:2}; break;
+    case "leiting": damage(a,t,4,{skill:true,label:name}); if(res){ if(a.flags.leitingResCount<2){ a.flags.leitingResCount+=1; addStatus(a.res.name,t,STATUS.OBSERVE); } } record={kind:"damage",amount:4}; break;
+    case "baijian": if(!t||t.owner!==a.owner)return false; { const min=Math.min(...alive(state.players[a.owner].team).map(c=>c.hpNow)); heal(t,t.hpNow===min?4:3,name); removeNeg(t); } if(res)addStatus(a.res.name,t,STATUS.GUARD); record={kind:"heal",amount:3}; break;
+    case "dengzhen": if(!t)return false; t.flags.spdMod += opts.mode==="down"?-2:2; if(t.owner===a.owner)heal(t,1,name); if(res)t.flags.damageTakenMod-=1; break;
+    case "ino": if(t.statuses.includes(STATUS.OBSERVE)){ t.statuses=t.statuses.filter(s=>s!==STATUS.OBSERVE); damage(a,t,3,{skill:true,label:name}); record={kind:"damage",amount:3}; } else addStatus(name,t,STATUS.OBSERVE); if(res)t.flags.damageTakenMod+=1; break;
+    case "aila": addStatus(name,t,STATUS.SEAL); if(t.statuses.includes(STATUS.OBSERVE)){ damage(a,t,2,{skill:true,label:name}); record={kind:"damage",amount:2}; } if(res)state.players[a.owner].energy=clamp(state.players[a.owner].energy+1,0,6); break;
+    case "leiyouxi": damage(a,t,res?4:3,{skill:true,label:name}); if(trailing(a.owner))addStatus(name,t,STATUS.CONFUSE); record={kind:"damage",amount:3}; break;
+    case "baidengling": for(const ally of alive(state.players[a.owner].team))heal(ally,1,name); { const low=alive(state.players[a.owner].team).sort((x,y)=>x.hpNow-y.hpNow)[0]; if(low)heal(low,1,"希望微光"); if(res&&low)removeNeg(low); } if(trailing(a.owner))state.players[a.owner].marks=clamp(state.players[a.owner].marks+1,0,3); record={kind:"heal",amount:1}; break;
+    case "yiaiqian": if(!state.lastSkill || (a.flags.records||0)<1)return false; a.flags.records-=1; if(state.lastSkill.kind==="damage")damage(a,t,state.lastSkill.amount,{skill:true,label:name}); else heal(t,state.lastSkill.amount,name); if(res)state.players[a.owner].energy=clamp(state.players[a.owner].energy+1,0,6); break;
+    case "weixiang": if(!t||t.owner!==a.owner)return false; addStatus(name,t,STATUS.GUARD); heal(t,1,name); if(res)t.flags.damageTakenMod-=1; record={kind:"heal",amount:1}; break;
+    case "xiaomo": { const heads=coin(); if(heads){ damage(a,t,4,{skill:true,label:name}); record={kind:"damage",amount:4}; } else { addStatus(name,t,STATUS.CONFUSE); damage(a,a,1,{skill:true,label:"小莫反噬"}); if(res)addStatus(a.res.name,t,STATUS.SLOW); } break; }
+    case "huiyin": {
+      const copy = state.lastCopyableSkill?.[a.owner];
+      if(copy){
+        if(copy.kind==="damage") damage(a,t,copy.amount,{skill:true,label:`${name} 複製 ${copy.name}`});
+        else heal(t,copy.amount,`${name} 複製 ${copy.name}`);
+      } else {
+        if(!t || t.owner===a.owner) return false;
+        damage(a,t,2,{skill:true,label:name});
+        record={kind:"damage",amount:2,name:a.skill.name};
+      }
+      break;
+    }
+    case "yingli": { const had=t.statuses.includes(STATUS.CONFUSE); addStatus(name,t,STATUS.CONFUSE); t.flags.cannotAttackYingli=true; if(had)damage(a,t,2,{skill:true,label:name}); if(res)a.flags.damageTakenMod-=1; break; }
+    case "tianxun": { const choices=opts.choices||[]; const selected=choices.slice(0,res?2:1); if(!selected.length)return false; for(const ch of selected){ if(ch==="atk")state.tianAtkBuff=true; if(ch==="skill")state.tianSkillDebuff=true; if(ch==="spd")for(const ally of alive(state.players[a.owner].team))ally.flags.spdMod+=1; if(ch==="low")state.lowestFirst=true; } if(res)a.flags.noDefend=true; log(`${name}套用 ${selected.join("、")}。`); break; }
+    case "xuntian": damage(a,t,5,{skill:true,label:name}); a.flags.skillCostUp+=1; if(res&&t.hpNow>0&&t.hpNow<=3)damage(a,t,1,{skill:true,label:a.res.name}); record={kind:"damage",amount:5}; break;
+    case "zuozhe": if(!t||t.owner===a.owner)return false; if(coin())addStatus(name,t,STATUS.CONFUSE); else{ t.flags.atkMod-=1; t.flags.spdMod-=1; t.flags.nextRoundAtkMod-=1; t.flags.nextRoundSpdMod-=1; log(`${t.name} 本回合與下回合 ATK/SPD-1。`); } if(res&&t.statuses.includes(STATUS.CONFUSE))addStatus(a.res.name,t,STATUS.OBSERVE); break;
+  }
+  if(record){
+    state.lastSkill=record;
+    if(!["ningyao","zuozhe","huiyin"].includes(a.id)){
+      if(!state.lastCopyableSkill) state.lastCopyableSkill = {p1:null,p2:null};
+      state.lastCopyableSkill[a.owner] = {...record, name:a.skill.name};
+    }
+  }
+  return true;
+}
+function judgement(type,targetKey){
+  audio.play("skill");
+  const actor=activeF(); if(!actor||!canControl(actor.owner))return; const p=state.players[actor.owner]; if(p.judgementUsed)return;
+  const cost={atk:1,def:1,spd:1,heal:2,seal:3}[type]; if(p.marks<cost)return; const t=parseTarget(targetKey);
+  if(["spd","heal"].includes(type)&&(!t||t.owner!==actor.owner))return; if(type==="seal"&&(!t||t.owner===actor.owner))return;
+  p.marks-=cost; p.judgementUsed=true;
+  if(type==="atk"){ actor.flags.atkMod+=1; log("裁定：本次/本回合傷害+1。"); }
+  if(type==="def"){ actor.flags.damageTakenMod-=1; log("裁定：受傷-1。"); }
+  if(type==="spd"){ t.flags.spdMod+=1; log(`裁定：${t.name} SPD+1。`); }
+  if(type==="heal"){ t.cd=Math.max(0,t.cd-1); heal(t,1,"裁定"); }
+  if(type==="seal"){ t.flags.noResNextSkill=true; addStatus("裁定封殺",t,STATUS.SLOW); }
+  closeDialog(); commit();
+}
+function parseTarget(key){ if(!key)return null; const [side,id]=key.split(":"); return state.players[side].team.find(c=>c.id===id); }
+
+function openDialog(type){ audio.play("ui"); dialog = type; render(); }
+function closeDialog(){ dialog = null; render(); }
+function toggleCombatPanel(){ audio.play("ui"); ui.combatPanelOpen = !ui.combatPanelOpen; render(); }
+async function toggleFullscreen(){
+  audio.play("ui");
+  const next = !(ui.fullscreen || document.fullscreenElement);
+  ui.fullscreen = next;
+  try{
+    if(next && !document.fullscreenElement) await document.documentElement.requestFullscreen();
+    else if(!next && document.fullscreenElement) await document.exitFullscreen();
+  }catch(err){
+    net.status = next ? "已切換遊戲滿版模式；瀏覽器若允許會同步進入全螢幕。" : "已退出遊戲滿版模式。";
+  }
+  render();
+}
+
+function targetList(filter){
+  const actor=activeF(); const out=[];
+  for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)){
+    if(filter==="ally" && side!==actor.owner)continue; if(filter==="enemy" && side===actor.owner)continue;
+    out.push({key:`${side}:${c.id}`, side, c});
+  }
+  return out;
+}
+function skillFilter(actor){
+  if(["hengshuo","baijian","weixiang"].includes(actor.id))return"ally";
+  if(actor.id==="zuozhe")return"enemy";
+  if(["dengzhen","yiaiqian","huiyin"].includes(actor.id))return"all";
+  if(["baidengling","tianxun"].includes(actor.id))return"none";
+  return"enemy";
+}
+function confusionTargets(actor){
+  const out = [];
+  for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)){
+    const blocked = actor?.flags.cannotAttackYingli && c.id === "yingli";
+    if(!blocked) out.push({key:`${side}:${c.id}`, side, c});
+  }
+  return out;
+}
+
+function render(){
+  const shake = state.shakeStamp && Date.now() - state.shakeStamp < 600 ? "shake" : "";
+  const battleMode = !view && state.screen === "battle";
+  const layoutKey = `${view || "game"}:${state.screen}:${state.winner || ""}`;
+  document.body.classList.toggle("battle-lock", battleMode);
+  app.innerHTML = `<div class="app ${shake} ${battleMode ? "battle-app" : ""} ${battleMode && ui.fullscreen ? "immersive-app" : ""}">${renderTop()}<main class="wrap">${renderRoomBanner()}${battleMode ? "" : renderReleaseBanner()}${renderMain()}</main>${renderDialog()}${renderUpdateGate()}</div>`;
+  if(!releaseState.checked && !releaseState.checking) setTimeout(() => checkForUpdates(false), 250);
+  if(layoutKey !== lastLayoutKey){
+    lastLayoutKey = layoutKey;
+    if(!battleMode) requestAnimationFrame(() => window.scrollTo({ top:0, behavior:"smooth" }));
+  }
+}
+function renderTop(){
+  const meta = net.mode==="online" ? `v${APP_VERSION} / 線上 ${net.room} / ${net.seat.toUpperCase()} / ${net.status}` : `v${APP_VERSION} / ${net.status}`;
+  const combatButton = !view && state.screen==="battle" ? `<button onclick="toggleCombatPanel()">${ui.combatPanelOpen ? "關戰況" : "戰況"}</button>` : "";
+  const fullscreenButton = !view && state.screen==="battle" ? `<button onclick="toggleFullscreen()">${ui.fullscreen || document.fullscreenElement ? "退出全螢幕" : "全螢幕"}</button>` : "";
+  const downloadButton = state.screen !== "battle" ? `<button onclick="downloadWindows()">下載</button>` : "";
+  return `<header class="top"><div class="brand"><h1>LuxFatum 裁定對決 v4.2</h1><p>${meta || "本機"}</p></div><div class="top-actions">${combatButton}${fullscreenButton}${downloadButton}<button onclick="${view==="rules" ? "closeRules()" : "showRules()"}">${view==="rules" ? "回遊戲" : "規則"}</button><button onclick="audio.toggle()">${audio.music ? "主題曲開" : "主題曲關"}</button><button onclick="audio.sfx=!audio.sfx; audio.play('ui'); render()">${audio.sfx ? "音效開" : "音效關"}</button><button onclick="resetToMenu()">回主選單</button></div></header>`;
+}
+function renderReleaseBanner(){
+  const data = releaseState.data;
+  if(releaseState.checking) return `<section class="release-banner"><div><strong>正在檢查更新</strong><p>確認目前版本與下載資訊。</p></div></section>`;
+  if(releaseState.error) return `<section class="release-banner"><div><strong>更新檢查暫時失敗</strong><p>${releaseState.error}</p></div><div class="release-actions"><button onclick="checkForUpdates(true)">重試</button></div></section>`;
+  if(!data || (!data.updateAvailable && !data.forceUpdate)) return "";
+  return `<section class="release-banner ${data.forceUpdate ? "force" : ""}"><div><strong>${data.forceUpdate ? "需要更新才能繼續線上對戰" : "有新版本可下載"}</strong><p>目前 ${APP_VERSION}，最新 ${data.latestVersion}。${data.message || ""}</p></div><div class="release-actions"><button onclick="downloadWindows()">下載 Windows 版</button><button onclick="downloadPackage()">Render/GitHub 包</button></div></section>`;
+}
+function renderUpdateGate(){
+  const data = releaseState.data;
+  if(!data?.forceUpdate) return "";
+  return `<div class="update-gate"><section class="update-gate-panel"><h2>必須更新</h2><p>${data.message || "此版本已不支援線上對戰，請下載最新版本。"}</p><div class="release-actions"><button onclick="downloadWindows()">下載 Windows 版</button><button onclick="downloadPackage()">下載部署包</button><button onclick="checkForUpdates(true)">重新檢查</button></div></section></div>`;
+}
+function renderMain(){
+  if(view==="rules")return renderRulesPage();
+  if(state.screen==="menu")return renderMenu();
+  if(state.screen==="draft")return renderDraft();
+  if(state.screen==="battle")return renderBattle();
+  return "";
+}
+function renderRoomBanner(){
+  if(net.mode !== "online" || !net.room) return "";
+  return `<section class="room-banner">
+    <div class="row" style="justify-content:space-between">
+      <div>
+        <div class="subtle">線上房間 · 你的座位 ${net.seat.toUpperCase()}</div>
+        <div class="room-code">${net.room}</div>
+      </div>
+      <div class="row">
+        <button onclick="copyRoom()">複製房號</button>
+        <button onclick="copyInvite()">複製邀請連結</button>
+        <button onclick="forceSync()">重新同步</button>
+      </div>
+    </div>
+    <div class="invite-link">${inviteLink()}</div>
+  </section>`;
+}
+function renderRulesPage(){
+  const hero = ["ningyao","yingli","leiyouxi"].map(id=>byId(id));
+  const statusRows = [
+    ["封印",`下次行動<span class="hi-red">不能使用技能</span>；該行動結束後移除。休息也可提前移除。`],
+    ["觀測",`下一次受到傷害 <span class="hi-red">+1</span>，然後移除。映璃不能被觀測。`],
+    ["混亂",`下一次需要指定目標時，由<span class="hi-gold">對手指定合法目標</span>，然後移除。若打到原使用者我方角色，該次傷害最多為 <span class="hi-red">1</span>。`],
+    ["遲緩",`下回合 <span class="hi-blue">SPD -1</span>。`],
+    ["守護",`我方其他角色受到傷害時，可由持有守護者代替承受，承受後移除。`]
+  ];
+  return `<section class="rules-page">
+    <section class="rules-hero">
+      <div>
+        <span class="pill">v4.2.0 線上連線版</span>
+        <h2>規則書</h2>
+        <p>雙方各選 <span class="hi-gold">3 名角色</span>，用攻擊、技能、共鳴、狀態與裁定標記擊倒對手全部角色。規則頁整理成可快速查閱的版面，對戰中也能直接打開。</p>
+        <div class="row"><button onclick="closeRules()">回到遊戲</button><button onclick="startLocal()">本機開局</button></div>
+      </div>
+      <div class="rules-art-stack">${hero.map(c=>`<img src="${cardImage(c.id)}" alt="${c.name}" style="--focus:${artFocus(c.id)}">`).join("")}</div>
+    </section>
+    <section class="rules-grid">
+      <article class="rule-card"><h3>開局設定</h3><ul><li>每位玩家選 <span class="hi-gold">3 名角色</span>，起始能量 <span class="hi-blue">2</span>，上限 <span class="hi-blue">6</span>。</li><li>起始裁定 <span class="hi-gold">0</span>，上限 <span class="hi-gold">3</span>。</li><li>初始技能冷卻為 <span class="hi-blue">0</span>，第 1 回合只要能量夠就可使用技能。</li><li>推薦選角順序：A → B → B → A → A → B。</li></ul></article>
+      <article class="rule-card"><h3>回合流程</h3><ul><li>回合開始：雙方 <span class="hi-blue">+2 能量</span>，技能冷卻 -1，處理回合開始效果。</li><li>排定順序：<span class="hi-gold">SPD 高者先</span>；同速時 HP 較低者先。</li><li>輪流行動：攻擊、技能、防禦、休息擇一。</li><li>回合結束：處理白繭等回合結束效果。</li></ul></article>
+      <article class="rule-card"><h3>行動</h3><ul><li><span class="hi-red">攻擊</span>：指定 1 名敵方，造成自身 ATK 傷害，不觸發共鳴。</li><li><span class="hi-blue">技能</span>：支付費用並放上冷卻，成功結算後可共鳴。</li><li><span class="hi-gold">防禦</span>：受傷 -2，最低仍為 1，第一次負面狀態可免疫。</li><li><span class="hi-blue">休息</span>：回復 1 HP，移除 1 個負面狀態。</li></ul></article>
+      <article class="rule-card"><h3>共鳴</h3><ul><li>只有<span class="hi-blue">成功使用技能後</span>才能觸發。</li><li>需要至少 1 名其他我方角色存活。</li><li>每位玩家每回合最多觸發 <span class="hi-gold">2 次</span>。</li><li>費用 1 的技能若共鳴，需額外支付 <span class="hi-blue">1 能量</span>。</li></ul></article>
+      <article class="rule-card"><h3>裁定標記</h3><ul><li>己方角色被擊倒時，立即獲得 <span class="hi-gold">1 裁定</span>。</li><li>每位玩家每回合最多使用 <span class="hi-gold">1 次</span>裁定效果。</li><li>可用於傷害 +1、受傷 -1、SPD +1、冷卻 -1 並回 1 HP、封殺共鳴並給遲緩。</li><li>寧曜保命必須在該次傷害結算前已持有裁定。</li></ul></article>
+      <article class="rule-card"><h3>狀態</h3><div class="status-list">${statusRows.map(([name,desc])=>`<div class="status-line"><span class="pill">${name}</span><span>${desc}</span></div>`).join("")}</div></article>
+    </section>
+    <section class="codex-section">
+      <div class="card"><h2>角色圖鑑</h2><p>美術圖、基礎數值、技能消耗與冷卻集中在同一張卡上，選角和對戰時都能快速判斷角色定位。</p></div>
+      <div class="codex">${CHARS.map(c=>`<article class="codex-card"><div class="codex-art" style="background-image:url('${cardImage(c.id)}');--focus:${artFocus(c.id)}"><h3>${c.name}</h3></div><div class="codex-body"><div class="stats"><span class="pill gold">HP ${c.hp}</span><span class="pill red">ATK ${c.atk}</span><span class="pill blue">SPD ${c.spd}</span></div><p><b class="hi-gold">被動</b>｜${c.passive}</p><p><b class="hi-blue">${c.skill.name}</b>｜<span class="hi-blue">費用 ${c.skill.cost}</span>｜<span class="hi-gold">冷卻 ${c.skill.cd}</span><br>${c.skill.desc}</p><p><b class="hi-gold">共鳴 ${c.res.name}</b>｜${c.res.desc}</p></div></article>`).join("")}</div>
+    </section>
+  </section>`;
+}
+function renderMenu(){
+  const invite = initialRoom && net.mode === "local" ? `<div class="card"><h2>加入邀請房間</h2><p>偵測到邀請房號：</p><div class="room-code">${initialRoom}</div><button onclick="joinRoom('${initialRoom}')">加入這個房間</button></div>` : "";
+  const featured = ["xiaomo","tianxun","yingli","leiyouxi","ningyao","zuozhe"].map(id=>byId(id));
+  return `<section class="menu-shell">
+    <div class="game-hero"><div><h2>LuxFatum<br>裁定對決</h2><p>線上房間、輪抽選角、裁定與共鳴都已整合在同一個可玩的對戰介面。</p></div></div>
+    <div class="character-ribbon">${featured.map(c=>`<div class="ribbon-card" style="background-image:url('${cardImage(c.id)}');--focus:${artFocus(c.id)}"><span>${c.name}</span></div>`).join("")}</div>
+    <section class="grid menu">
+      ${invite}
+      <div class="card"><h2>本機雙人</h2><p>同一台電腦輪流操作 P1 / P2。</p><button onclick="startLocal()">本機雙人遊玩</button></div>
+      <div class="card"><h2>線上開房</h2><p>建立房間後會顯示大房號與邀請連結。把連結傳給 P2，P2 打開後可直接加入。</p><button onclick="createRoom()">建立線上房間</button></div>
+      <div class="card release-card"><h2>下載與更新</h2><p>Windows 版可像電腦遊戲一樣用啟動器開啟；Render/GitHub 包可直接解壓上傳部署。版本會自動檢查，未來可支援強制更新。</p><div class="release-actions"><button onclick="downloadWindows()">下載 Windows 版</button><button onclick="downloadPackage()">Render/GitHub 包</button><button onclick="openVersionInfo()">檢查更新</button></div></div>
+      <div class="card"><h2>規則頁</h2><p>查看回合流程、狀態、裁定與 18 名角色技能圖鑑。</p><button onclick="showRules()">查看規則</button></div>
+      <div class="card"><h2>輸入房號加入</h2><p>如果對方只傳房號，請在這裡輸入。</p><div class="row"><input id="roomInput" value="${initialRoom}" placeholder="例如 ABC23"><button onclick="joinRoom()">加入</button></div></div>
+    </section>
+  </section>`;
+}
+function renderDraft(){
+  const picked = new Set([...state.p1Draft,...state.p2Draft]);
+  const lock = net.mode==="online" && !canControl(state.draftTurn);
+  return `<div class="card"><h2>選角階段：輪到 <span class="${state.draftTurn}">${sideName(state.draftTurn)}</span></h2><p class="notice">${lock ? "等待對方選角..." : "選擇一名角色"}</p><div class="row"><span class="pill">P1: ${state.p1Draft.map(id=>byId(id).name).join("、")||"尚未選"}</span><span class="pill">P2: ${state.p2Draft.map(id=>byId(id).name).join("、")||"尚未選"}</span></div></div>
+  <section class="draft">${CHARS.map(c=>`<button class="draft-card ${picked.has(c.id)?"selected":""}" onclick="pick('${c.id}')" ${picked.has(c.id)||lock?"disabled":""}><div class="draft-art" style="background-image:url('${cardImage(c.id)}');--focus:${artFocus(c.id)}"><h3>${c.name}</h3></div><div class="draft-body"><div class="stats"><span class="pill">HP ${c.hp}</span><span class="pill">ATK ${c.atk}</span><span class="pill">SPD ${c.spd}</span></div><p class="desc"><b>${c.skill.name}</b>：${c.skill.desc}</p></div></button>`).join("")}</section>`;
+}
+function renderBattle(){
+  if(state.winner)return `<div class="card"><h2>遊戲結束：${state.winner}</h2><button onclick="startLocal()">重新開始本機遊戲</button></div>`;
+  return `<section class="battle-table">${renderCombatDrawer()}${renderTeam("p2")}<div class="battle-core"><div class="core-stage">${renderActiveSpotlight()}${renderSkillBurst()}</div><div class="core-command">${renderPendingIno()}${renderPendingConfuse()}${renderActions()}${renderSurrenderPanel()}</div></div>${renderTeam("p1")}</section>`;
+}
+function renderCombatDrawer(){
+  return `<aside class="combat-drawer ${ui.combatPanelOpen ? "open" : ""}" aria-label="行動順序與對戰紀錄">
+    <div class="combat-drawer-panel">
+      <div class="combat-drawer-head"><div><span class="pill gold">戰況</span><h2>順序與紀錄</h2></div><button class="combat-drawer-close" onclick="toggleCombatPanel()" aria-label="收合戰況">收</button></div>
+      ${renderQueue()}${renderLog()}
+    </div>
+  </aside>`;
+}
+function renderActiveSpotlight(){
+  const a = activeF();
+  if(!a) return "";
+  const p = state.players[a.owner];
+  return `<section class="active-spotlight"><div><span class="pill ${a.owner}">${sideName(a.owner)} 行動中</span><h2>${a.name}</h2><p>${a.skill.name}｜耗 ${a.skill.cost}｜冷卻 ${a.skill.cd}<br>${a.skill.desc}</p><p class="spotlight-res">共鳴 ${a.res.name}｜${a.res.desc}</p><div class="turn-hud"><span class="pill gold">第 ${state.round} 回合</span><span class="pill blue">能量 ${p.energy}/6</span><span class="pill gold">裁定 ${p.marks}/3</span><span class="pill">共鳴 ${p.resUsed}/2</span></div></div><div class="spotlight-frame" style="--portrait:url('${cardImage(a.id)}');--focus:${artFocus(a.id)}"><img class="spotlight-art" src="${cardImage(a.id)}" alt="${a.name}"></div></section>`;
+}
+function renderSkillBurst(){
+  if(!state.fx || Date.now() - state.fx.stamp > 2200) return "";
+  const rune = { skill:"技", damage:"傷", heal:"癒", status:"態" }[state.fx.kind] || "裁";
+  return `<section class="skill-burst ${state.fx.kind}"><span class="fx-rune">${rune}</span><div class="fx-copy"><strong>${state.fx.title}</strong><span>${state.fx.sub}</span></div></section>`;
+}
+function renderTeam(side){
+  const p=state.players[side];
+  return `<section class="team ${side}-side"><div class="team-head"><h2 class="${side}">${sideName(side)}</h2><div class="row"><span class="pill">能量 ${p.energy}/6</span><span class="pill">裁定 ${p.marks}/3</span><span class="pill">共鳴 ${p.resUsed}/2</span></div></div><div class="team-roster">${p.team.map(renderFighter).join("")}</div></section>`;
+}
+function renderFighter(c){
+  const active = state.active?.side===c.owner && state.active?.id===c.id;
+  const hit = state.lastHit?.owner===c.owner && state.lastHit?.id===c.id && Date.now() - state.lastHit.stamp < 800;
+  const hpPct = clamp((c.hpNow / c.maxHp) * 100, 0, 100);
+  return `<article class="fighter ${active?"active":""} ${c.hpNow<=0?"dead":""} ${hit?"hit":""}"><div class="fighter-main"><img class="fighter-art" src="${cardImage(c.id)}" alt="${c.name}" style="--focus:${artFocus(c.id)}"><div class="fighter-info"><h3><span class="fighter-name">${c.name}</span><span class="pill">CD ${c.cd}</span></h3><div class="hpbar"><div class="hpfill" style="width:${hpPct}%"></div></div><div class="stats"><span class="pill">HP ${c.hpNow}/${c.maxHp}</span><span class="pill">ATK ${currentAtk(c)}</span><span class="pill">SPD ${currentSpd(c)}</span><span class="pill">耗 ${c.skill.cost} / CD ${c.skill.cd}</span>${c.flags.records?`<span class="pill gold">紀錄 ${c.flags.records}</span>`:""}</div><div class="statuses">${statusLine(c)}</div></div></div><div class="record-board"><div class="record-row"><span class="record-label">技能</span><p><b>${c.skill.name}</b>：${c.skill.desc}</p></div><div class="record-row"><span class="record-label">共鳴</span><p><b>${c.res.name}</b>：${c.res.desc}</p></div><div class="record-row"><span class="record-label">被動</span><p>${c.passive}</p></div></div></article>`;
+}
+function renderQueue(){
+  return `<div class="card queue-card"><h2>行動順序</h2><div class="row">${state.queue.map((q,i)=>`<span class="pill ${i===0?"queue-current":q.side}">${i===0?"目前：":""}${sideName(q.side)} ${byId(q.id).name}</span>`).join("")}</div></div>`;
+}
+function renderActions(){
+  const a=activeF(); if(!a)return "";
+  if(state.pendingSkill) return `<section class="actions"><h2>等待伊諾干涉決定</h2><p class="notice">對方正在選擇是否讓技能費用 +1。</p></section>`;
+  if(state.pendingConfuseAttack) return `<section class="actions"><h2>等待混亂目標</h2><p class="notice">對方正在指定混亂攻擊的目標。</p></section>`;
+  const own=canControl(a.owner); const canSkill=a.cd<=0&&!a.statuses.includes(STATUS.SEAL)&&state.players[a.owner].energy>=skillCost(a,false);
+  const skillHint = a.statuses.includes(STATUS.SEAL) ? "封印中" : (a.cd>0 ? `冷卻 ${a.cd}` : `耗 ${skillCost(a,false)}`);
+  const p = state.players[a.owner];
+  return `<section class="actions"><h2>輪到 <span class="${a.owner}">${sideName(a.owner)} ${a.name}</span></h2><p class="quick-tip">${own ? actionHint(a) : "等待對方操作，這邊會自動同步最新戰況。"}</p>${renderStatusHelp(a)}<div class="action-grid">
+    <button onclick="requestAttack()" ${!own||a.flags.noAttack?"disabled":""}><span class="command-label">攻擊</span><span class="command-note">指定敵方，造成 ATK ${currentAtk(a)} 傷害</span></button>
+    <button onclick="openDialog('skill')" ${!own||!canSkill?"disabled":""}><span class="command-label">技能</span><span class="command-note">${a.skill.name}｜${skillHint}</span></button>
+    <button onclick="defend()" ${!own||a.flags.noDefend?"disabled":""}><span class="command-label">防禦</span><span class="command-note">本次受傷 -2，並免疫下一個負面狀態</span></button>
+    <button onclick="rest()" ${!own?"disabled":""}><span class="command-label">休息</span><span class="command-note">回復 1 HP，移除 1 個負面狀態</span></button>
+    <button class="judgement-action" onclick="openDialog('judgement')" ${!own||p.judgementUsed||p.marks<1?"disabled":""}><span class="command-label">裁定</span><span class="command-note">目前 ${p.marks}/3，可補傷害、提速或救場</span></button>
+  </div></section>`;
+}
+function renderStatusHelp(c){
+  const rows = c.statuses.map(s => {
+    const meta = STATUS_META[s] || { desc:s };
+    return `<div class="status-help-row"><b>${s}</b><span>${meta.desc}</span></div>`;
+  });
+  if(c.flags.defended) rows.unshift(`<div class="status-help-row"><b>防禦</b><span>本回合受傷 -2，並免疫下一個負面狀態。</span></div>`);
+  if(c.flags.noAttack) rows.unshift(`<div class="status-help-row"><b>禁攻</b><span>本次行動不能攻擊。</span></div>`);
+  return rows.length ? `<div class="status-help">${rows.join("")}</div>` : "";
+}
+function renderSurrenderPanel(){
+  if(net.mode === "online"){
+    return `<details class="danger-zone"><summary>對戰控制</summary><div class="action-grid"><button class="bad" onclick="surrender('${net.seat}')" ${!net.seat ? "disabled" : ""}>${net.seat.toUpperCase()} 投降</button></div></details>`;
+  }
+  const activeSide = state.active?.side || "p1";
+  return `<details class="danger-zone"><summary>對戰控制</summary><div class="action-grid"><button class="bad" onclick="surrender('${activeSide}')">當前方 ${sideName(activeSide)} 投降</button><button class="bad" onclick="surrender('${other(activeSide)}')">另一方 ${sideName(other(activeSide))} 投降</button></div></details>`;
+}
+function renderPendingIno(){
+  const pending = state.pendingSkill;
+  if(!pending) return "";
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId);
+  const defender = other(pending.actorSide);
+  const ino = alive(state.players[defender].team).find(c=>c.id==="ino");
+  const canDecide = canControl(defender);
+  return `<section class="actions pending">
+    <h2>伊諾干涉判定</h2>
+    <p>${sideName(pending.actorSide)} 的 ${actor?.name || "角色"} 正要施放技能。</p>
+    <p class="desc">伊諾可使該技能費用 +1；若技能仍成功結算，伊諾方獲得 1 能量。</p>
+    ${canDecide ? `<div class="action-grid"><button onclick="decideIno(true)">干涉：費用 +1</button><button onclick="decideIno(false)">不干涉</button></div>` : `<p class="notice">等待 ${sideName(defender)} 操作 ${ino?.name || "伊諾"}。</p>`}
+  </section>`;
+}
+function renderPendingConfuse(){
+  const pending = state.pendingConfuseAttack;
+  if(!pending) return "";
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId);
+  const defender = other(pending.actorSide);
+  const canDecide = canControl(defender);
+  const targets = confusionTargets(actor);
+  const actionName = pending.action === "skill" ? "技能" : "攻擊";
+  return `<section class="actions pending">
+    <h2>混亂攻擊目標</h2>
+    <p>${actor?.name || "角色"} 的${actionName}由 ${sideName(defender)} 指定目標。</p>
+    <p class="desc">若指定到原使用者的我方角色，該次傷害最多為 1。</p>
+    ${canDecide ? `<div class="choice-grid">${targets.map(t=>`<button class="choice" onclick="decideConfuseAttack('${t.key}')">${sideName(t.side)} ${t.c.name}<br><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span></button>`).join("")}</div>` : `<p class="notice">等待 ${sideName(defender)} 選擇攻擊目標。</p>`}
+  </section>`;
+}
+function renderLog(){
+  return `<section class="log"><h2>戰鬥紀錄</h2>${state.logs.slice().reverse().map(x=>`<div class="log-line ${/造成|擊倒|混亂發作/.test(x) ? "impact" : ""}">${x}</div>`).join("")}</section>`;
+}
+function renderDialog(){
+  if(!dialog)return""; const a=activeF(); if(!a)return"";
+  if(dialog==="attack"){
+    const filter=a.statuses.includes(STATUS.CONFUSE)?"all":"enemy";
+    return modal("選擇攻擊目標", `<div class="choice-grid">${targetList(filter).map(t=>`<button class="choice" onclick="attack('${t.key}')">${sideName(t.side)} ${t.c.name}<br><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span></button>`).join("")}</div>`);
+  }
+  if(dialog==="skill"){
+    const filter=skillFilter(a); const resDisabled=state.players[a.owner].resUsed>=2 || !alive(state.players[a.owner].team).some(c=>c.id!==a.id);
+    const resCost = skillCost(a, true);
+    const resReason = resDisabled
+      ? (state.players[a.owner].resUsed>=2 ? "本回合共鳴次數已達上限。" : "需要至少1名其他我方角色存活。")
+      : `勾選後技能總費用：${resCost} 能量。`;
+    const common = `<div class="dialog-section">
+      <h3>技能資訊</h3>
+      <div class="skill-meta"><span class="pill">消耗 ${skillCost(a,false)} 能量</span><span class="pill">冷卻 ${a.skill.cd}</span><span class="pill">目前能量 ${state.players[a.owner].energy}/6</span></div>
+    </div>
+    <div class="dialog-section resonance-box">
+      <h3>共鳴</h3>
+      <label class="row"><input id="resBox" type="checkbox" ${resDisabled?"disabled":""} style="width:auto"> 使用共鳴：${a.res.name}</label>
+      <p class="skill-desc"><b>${a.res.name}</b>：${a.res.desc}</p>
+      <p class="desc">${resReason}</p>
+    </div>`;
+    const resExpr = "document.querySelector('#resBox').checked";
+    if(a.id==="tianxun")return modal(a.skill.name, `${common}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">未使用共鳴最多選 1 項；使用共鳴最多選 2 項。</p></div><div class="dialog-section"><h3>選擇效果</h3><div class="choice-grid">${["atk:普攻傷害+1","skill:技能傷害-1","spd:我方全體SPD+1","low:最低SPD先行動"].map(s=>{const [v,l]=s.split(":");return`<label class="choice"><input name="tian" value="${v}" type="checkbox"> <span class="choice-title">${l}</span></label>`}).join("")}</div></div><button onclick="useSkill(null,{res:${resExpr},choices:[...document.querySelectorAll('input[name=tian]:checked')].map(i=>i.value)})">施放</button>`);
+    if(a.id==="baidengling")return modal(a.skill.name, `${common}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">${a.skill.desc}</p></div><button onclick="useSkill(null,{res:${resExpr}})">施放希望微光</button>`);
+    if(a.id==="dengzhen")return modal(a.skill.name, `${common}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">${a.skill.desc}</p></div><div class="dialog-section"><h3>選擇目標</h3><div class="choice-grid">${targetList("all").map(t=>`<div class="choice"><span class="choice-title">${sideName(t.side)} ${t.c.name}</span><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span><div class="row" style="margin-top:12px"><button onclick="useSkill('${t.key}',{mode:'up',res:${resExpr}})">SPD +2</button><button onclick="useSkill('${t.key}',{mode:'down',res:${resExpr}})">SPD -2</button></div></div>`).join("")}</div></div>`);
+    return modal(a.skill.name, `${common}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">${a.skill.desc}</p></div><div class="dialog-section"><h3>選擇目標</h3><div class="choice-grid">${targetList(filter).map(t=>`<button class="choice" onclick="useSkill('${t.key}',{res:${resExpr}})"><span class="choice-title">${sideName(t.side)} ${t.c.name}</span><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span></button>`).join("") || "<p>不需目標</p>"}</div></div>`);
+  }
+  if(dialog==="judgement"){
+    return modal("裁定", `<div class="choice-grid"><button onclick="judgement('atk')">1 裁定：傷害+1</button><button onclick="judgement('def')">1 裁定：受傷-1</button>${targetList("ally").map(t=>`<button onclick="judgement('spd','${t.key}')">1 裁定：${t.c.name} SPD+1</button><button onclick="judgement('heal','${t.key}')">2 裁定：${t.c.name} 冷卻-1並回1HP</button>`).join("")}${targetList("enemy").map(t=>`<button onclick="judgement('seal','${t.key}')">3 裁定：封殺 ${t.c.name} 共鳴並遲緩</button>`).join("")}</div>`);
+  }
+  return"";
+}
+function modal(title, body){ return `<div class="modal" onclick="if(event.target===this)closeDialog()"><section class="dialog"><div class="row dialog-head"><h2>${title}</h2><button onclick="closeDialog()">關閉</button></div><div class="dialog-body">${body}</div></section></div>`; }
+document.addEventListener("fullscreenchange", () => {
+  ui.fullscreen = !!document.fullscreenElement;
+  render();
+});
+render();
+</script>
+</body>
+</html>

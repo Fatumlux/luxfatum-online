@@ -1,0 +1,10 @@
+{
+  "name": "luxfatum-online-v4-1",
+  "version": "4.2.0",
+  "private": true,
+  "description": "LuxFatum v4.2.0 online card battle with downloadable Windows launcher",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js"
+  }
+}

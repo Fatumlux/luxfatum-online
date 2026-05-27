@@ -1,9 +1,9 @@
 {
   "appId": "luxfatum.online",
   "name": "LuxFatum 裁定對決",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "channel": "stable",
-  "minSupportedVersion": "4.2.0",
+  "minSupportedVersion": "4.2.1",
   "forceUpdate": false,
   "updatedAt": "2026-05-27",
   "downloadUrl": "/download/windows.zip",
@@ -11,10 +11,10 @@
   "onlineUrl": "https://luxfatum-online.onrender.com",
   "versionUrl": "/api/version",
   "notes": [
-    "新增 Windows 遊戲啟動器與下載包。",
-    "新增版本檢查、未來更新提示與強制更新欄位。",
-    "保留原有線上房間對戰 API，不改變房間同步資料格式。",
-    "戰鬥畫面支援固定桌面、滿版圖面與縮小視窗排版。"
+    "Windows 下載版改為本地桌面應用程式視窗，不再直接跳外部瀏覽器。",
+    "本地應用程式會載入本機遊戲檔，房間對戰 API 會直接連到線上伺服器。",
+    "Windows 包不需要 Node.js。",
+    "保留原有線上房間對戰資料格式，避免破壞既有房間系統。"
   ],
-  "forceUpdateMessage": "目前版本已停用線上對戰，請下載最新版本後再繼續。"
+  "forceUpdateMessage": "目前版本需要更新後才能連線。請下載最新版 LuxFatum。"
 }

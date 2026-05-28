@@ -2416,7 +2416,7 @@ function renderDraft(){
 }
 function renderBattle(){
   if(state.winner)return `<div class="card"><h2>遊戲結束：${state.winner}</h2><button onclick="startLocal()">重新開始本機遊戲</button></div>`;
-  return `<section class="battle-table unity-hud">${renderCombatDrawer()}${renderTurnFlow()}${renderTeam("p2")}<div class="battle-core"><div class="core-stage"><div id="pixi-root" class="pixi-root" aria-label="PixiJS battle stage"></div>${renderActiveSpotlight()}${renderSkillBurst()}</div><div class="core-command">${renderPendingIno()}${renderPendingConfuse()}${renderActions()}${renderSurrenderPanel()}</div></div>${renderTeam("p1")}</section>`;
+  return `<section class="battle-table unity-hud">${renderCombatDrawer()}${renderTurnFlow()}${renderTeam("p2")}<div class="battle-core"><div class="core-stage">${renderActiveSpotlight()}${renderSkillBurst()}</div><div class="core-command">${renderPendingIno()}${renderPendingConfuse()}${renderActions()}${renderSurrenderPanel()}</div></div>${renderTeam("p1")}</section>`;
 }
 function renderTurnFlow(){
   const steps = ["回合開始","行動順序","輪流行動","回合結束"];

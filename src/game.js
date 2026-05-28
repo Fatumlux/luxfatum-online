@@ -20,6 +20,7 @@ export const RULES = {
 };
 
 const SIDES = ["p1", "p2"];
+const CONFUSE_FRIENDLY_DAMAGE_CAP = 2;
 
 export function readGameSnapshot() {
   if (typeof window.LuxFatumGameSnapshot !== "function") return null;
@@ -86,6 +87,11 @@ export function installRulesBridge() {
       if (result.actionSpent) finishAction(readGameSnapshot());
       closeAndCommit(result);
     },
+    decideMirror: useReflect => {
+      const result = decideMirror(readGameSnapshot(), useReflect);
+      if (result.actionSpent) finishAction(readGameSnapshot());
+      closeAndCommit(result);
+    },
     useSkill: (targetKey, opts = {}) => {
       const result = useSkill(readGameSnapshot(), targetKey, opts);
       if (result.pending) commitBridge(result);
@@ -118,7 +124,7 @@ export function installRulesBridge() {
     currentSpd,
     targetList: filter => targetList(readGameSnapshot(), filter),
     skillFilter,
-    confusionTargets: actor => confusionTargets(readGameSnapshot(), actor),
+    confusionTargets: (actor, action) => confusionTargets(readGameSnapshot(), actor, action),
     heal: (target, amount, source) => heal(readGameSnapshot(), target, amount, source),
     damage: (source, target, amount, opts = {}) => damage(readGameSnapshot(), source, target, amount, opts),
     addStatus: (source, target, status) => addStatus(readGameSnapshot(), source, target, status)
@@ -134,6 +140,7 @@ export function installRulesBridge() {
     "requestAttack",
     "attack",
     "decideConfuseAttack",
+    "decideMirror",
     "useSkill",
     "decideIno",
     "defend",
@@ -185,6 +192,7 @@ export function startBattle(snapshot) {
   state.active = null;
   state.pendingSkill = null;
   state.pendingConfuseAttack = null;
+  state.pendingMirror = null;
   state.lastSkill = null;
   state.lastCopyableSkill = { p1: null, p2: null };
   state.lowestFirst = false;
@@ -277,7 +285,8 @@ export function attack(snapshot, targetKey, opts = {}) {
     log(state, `${actor.name} 不能指定映璃。`);
     return { ok: false };
   }
-  performAttack(snapshot, actor, target, !!opts.confused);
+  if (queueMirrorPrompt(state, actor, target, "attack", targetKey, opts)) return { ok: true, pending: "mirror" };
+  performAttack(snapshot, actor, target, !!opts.confused, opts);
   clearActionEndSeal(state, actor);
   return { ok: true, actionSpent: true };
 }
@@ -292,6 +301,10 @@ export function decideConfuseTarget(snapshot, targetKey) {
   if (!actor || !target) {
     state.pendingConfuseAttack = null;
     return { ok: false };
+  }
+  if (!confusionTargets(snapshot, actor, pending.action).some(item => item.c === target)) {
+    log(state, `${actor.name} 的混亂目標不合法，請重新選擇。`);
+    return { ok: false, closeDialog: false };
   }
   if (actor.flags.cannotAttackYingli && target.id === "yingli") {
     log(state, `${actor.name} 的混亂目標不能指定映璃。`);
@@ -316,6 +329,7 @@ export function useSkill(snapshot, targetKey, opts = {}) {
   }
   if (hasStatus(actor, STATUS.SEAL)) {
     log(state, `${actor.name} 被封印，不能使用技能。`);
+    clearActionEndSeal(state, actor);
     return { ok: false, actionSpent: true };
   }
 
@@ -358,6 +372,24 @@ export function decideIno(snapshot, useInterference) {
   if (!pending) return { ok: false };
   state.pendingSkill = null;
   return executeSkill(snapshot, pending.targetKey, { ...pending.opts, actorId: pending.actorId, inoDecision: !!useInterference });
+}
+
+export function decideMirror(snapshot, useReflect) {
+  const state = normalizeBattleState(snapshot);
+  const pending = state?.pendingMirror;
+  if (!pending) return { ok: false };
+  state.pendingMirror = null;
+
+  const actor = getFighter(state, pending.actorSide, pending.actorId);
+  const target = parseTarget(state, pending.targetKey);
+  if (!actor || !target) return { ok: false };
+
+  const opts = { ...pending.opts, mirrorDecision: true, mirrorReflect: !!useReflect, mirrorDeclined: !useReflect };
+  log(state, `鏡刃選擇${useReflect ? "發動" : "不發動"}「全域鏡返」。`);
+  if (pending.action === "attack") {
+    return attack(snapshot, pending.targetKey, opts);
+  }
+  return executeSkill(snapshot, pending.targetKey, { ...opts, actorId: pending.actorId });
 }
 
 export function defend(snapshot) {
@@ -485,6 +517,7 @@ export function targetList(snapshot, filter) {
     for (const fighter of alive(state.players[side].team)) {
       if (filter === "ally" && side !== actor.owner) continue;
       if (filter === "enemy" && side === actor.owner) continue;
+      if (filter === "self" && fighter !== actor) continue;
       if (filter === "none") continue;
       out.push({ key: `${side}:${fighter.id}`, side, c: fighter });
     }
@@ -492,12 +525,17 @@ export function targetList(snapshot, filter) {
   return out;
 }
 
-export function confusionTargets(snapshot, actor) {
+export function confusionTargets(snapshot, actor, action = "attack") {
   const state = normalizeBattleState(snapshot);
   if (!state?.players) return [];
   const out = [];
+  const filter = action === "skill" ? skillFilter(actor) : "enemy";
   for (const side of SIDES) {
     for (const fighter of alive(state.players[side].team)) {
+      if (filter === "ally" && side !== actor?.owner) continue;
+      if (filter === "enemy" && side === actor?.owner) continue;
+      if (filter === "self" && fighter !== actor) continue;
+      if (filter === "none") continue;
       if (actor?.flags?.cannotAttackYingli && fighter.id === "yingli") continue;
       out.push({ key: `${side}:${fighter.id}`, side, c: fighter });
     }
@@ -507,6 +545,7 @@ export function confusionTargets(snapshot, actor) {
 
 export function skillFilter(actor) {
   if (!actor) return "none";
+  if (actor.id === "jingren") return "self";
   if (["hengshuo", "baijian", "weixiang"].includes(actor.id)) return "ally";
   if (actor.id === "zuozhe") return "enemy";
   if (["dengzhen", "yiaiqian", "huiyin"].includes(actor.id)) return "all";
@@ -563,6 +602,100 @@ export function addStatus(snapshot, source, target, status) {
   return true;
 }
 
+function mirrorEnabled(source, opts) {
+  return !!(opts?.mirrorReflect || (opts?.skill && source?.flags?.mirrorReflectCurrent));
+}
+
+function canMirrorReflect(source, target, opts = {}) {
+  return !!(
+    mirrorEnabled(source, opts)
+    && source
+    && target
+    && source.owner !== target.owner
+    && target.id === "jingren"
+    && target.hpNow > 0
+    && (opts.attack || opts.skill)
+    && (target.flags.mirrorReflectUsed || 0) < 2
+  );
+}
+
+function mirrorReflectedByAction(source, target, opts = {}) {
+  return !!(
+    mirrorEnabled(source, opts)
+    && source?.flags?.mirrorReflectedThisAction
+    && source.flags.mirrorReflectedOwner === target?.owner
+    && (opts.attack || opts.skill)
+  );
+}
+
+function triggerMirrorReflect(snapshot, source, mirror, amount, label) {
+  const state = normalizeBattleState(snapshot);
+  if (!state || !source || !mirror) return 0;
+
+  const reflected = Math.max(1, amount);
+  const sourcePlayer = state.players[source.owner];
+  const marksBeforeDamage = sourcePlayer?.marks || 0;
+  mirror.flags.mirrorReflectUsed = (mirror.flags.mirrorReflectUsed || 0) + 1;
+  source.flags.mirrorReflectedThisAction = true;
+  source.flags.mirrorReflectedOwner = mirror.owner;
+  log(state, `鏡刃「全域鏡返」發動：取消 ${label} 對我方的傷害，並反彈 ${reflected} 傷害。`);
+
+  const before = source.hpNow;
+  source.hpNow = Math.max(0, source.hpNow - reflected);
+  state.lastHit = { owner: source.owner, id: source.id, stamp: Date.now() };
+  state.shakeStamp = Date.now();
+  const dealt = before - source.hpNow;
+  if (dealt > 0) setFx(state, "damage", "全域鏡返", `${source.name} -${dealt} HP`);
+  if (source.hpNow <= 0) knockout(snapshot, source, mirror, { marksBeforeDamage, mirrorReflect: true });
+  return dealt;
+}
+
+function mirrorCandidateFor(state, source, target) {
+  if (!state || !source || !target || source.owner === target.owner) return null;
+  const team = state.players[target.owner]?.team || [];
+  const direct = target.id === "jingren" ? target : null;
+  const guard = team.find(fighter =>
+    fighter.id !== target.id
+    && fighter.id === "jingren"
+    && fighter.hpNow > 0
+    && hasStatus(fighter, STATUS.GUARD)
+  );
+  const mirror = direct || guard;
+  if (!mirror || mirror.hpNow <= 0 || (mirror.flags.mirrorReflectUsed || 0) >= 2) return null;
+  return mirror;
+}
+
+function skillMayDamageMirror(state, actor, target) {
+  if (!state || !actor || !target) return false;
+  const damageSkills = ["ningyao", "youming", "leiting", "leiyouxi", "xiaomo", "xuntian", "zuozhe"];
+  if (damageSkills.includes(actor.id)) return true;
+  if (actor.id === "ino") return hasStatus(target, STATUS.OBSERVE);
+  if (actor.id === "aila") return hasStatus(target, STATUS.OBSERVE);
+  if (actor.id === "yiaiqian") return state.lastSkill?.kind === "damage";
+  if (actor.id === "huiyin") return !state.lastCopyableSkill?.[actor.owner] || state.lastCopyableSkill[actor.owner].kind === "damage";
+  if (actor.id === "yingli") return hasStatus(target, STATUS.CONFUSE);
+  return false;
+}
+
+function queueMirrorPrompt(state, actor, target, action, targetKey, opts = {}) {
+  if (!state || opts.mirrorDecision || opts.mirrorReflect || opts.mirrorDeclined) return false;
+  if (action === "skill" && !skillMayDamageMirror(state, actor, target)) return false;
+  const mirror = mirrorCandidateFor(state, actor, target);
+  if (!mirror) return false;
+
+  state.pendingMirror = {
+    actorSide: actor.owner,
+    actorId: actor.id,
+    targetKey,
+    action,
+    opts,
+    mirrorSide: mirror.owner,
+    mirrorId: mirror.id
+  };
+  log(state, `鏡刃可以選擇是否發動「全域鏡返」干擾 ${actor.name} 的${action === "attack" ? "普攻" : "技能"}。`);
+  return true;
+}
+
 export function damage(snapshot, source, target, amount, opts = {}) {
   const state = normalizeBattleState(snapshot);
   if (!state || !target || target.hpNow <= 0 || amount <= 0) return 0;
@@ -576,51 +709,62 @@ export function damage(snapshot, source, target, amount, opts = {}) {
     notes.push(`裁定造成傷害 +${source.flags.judgementDamageBonus}`);
     source.flags.judgementDamageBonus = 0;
   }
-  if (hasStatus(target, STATUS.OBSERVE) && target.id !== "yingli") {
-    dmg += 1;
-    removeStatus(target, STATUS.OBSERVE);
-    notes.push("觀測 +1");
-  }
-  if (target.flags.damageTakenMod) {
-    dmg += target.flags.damageTakenMod;
-    notes.push(`受傷修正 ${signed(target.flags.damageTakenMod)}`);
-  }
   if (opts.skill && state.tianSkillDebuff) {
     dmg += 1;
     notes.push("天訊技能傷害 +1");
   }
-  if (target.id === "youming" && !target.flags.firstDamageReduced) {
-    target.flags.firstDamageReduced = true;
-    dmg -= 1;
-    notes.push("幽冥首次受傷 -1");
+
+  if (mirrorReflectedByAction(source, target, opts)) return 0;
+  if (canMirrorReflect(source, target, opts)) return triggerMirrorReflect(snapshot, source, target, Math.max(1, dmg), label);
+
+  let actual = redirectTarget(state, target, Math.max(1, dmg));
+  if (actual !== target) notes.push(`由 ${actual.name} 承受`);
+
+  if (mirrorReflectedByAction(source, actual, opts)) return 0;
+  if (canMirrorReflect(source, actual, opts)) return triggerMirrorReflect(snapshot, source, actual, Math.max(1, dmg), label);
+
+  if (hasStatus(actual, STATUS.OBSERVE) && actual.id !== "yingli") {
+    dmg += 1;
+    removeStatus(actual, STATUS.OBSERVE);
+    notes.push(`${actual.name}觀測 +1`);
   }
-  if (opts.skill && target.id === "aila" && !target.statuses.some(status => NEGATIVE_STATUSES.includes(status))) {
+  if (actual.flags.damageTakenMod) {
+    const beforeMod = dmg;
+    dmg += actual.flags.damageTakenMod;
+    notes.push(`${actual.name}受傷修正 ${signed(actual.flags.damageTakenMod)}`);
+    triggerHengshuoGuardHeal(state, actual, beforeMod, dmg);
+  }
+  if (opts.skill && actual.id === "aila" && !actual.statuses.some(status => NEGATIVE_STATUSES.includes(status))) {
     dmg -= 1;
     notes.push("艾菈無負面狀態，技能傷害 -1");
   }
-  if (opts.skill && target.id === "yingli" && !target.flags.skillTargeted) {
-    target.flags.skillTargeted = true;
+  if (opts.skill && actual.id === "yingli" && !actual.flags.skillTargeted) {
+    actual.flags.skillTargeted = true;
     dmg -= 2;
     notes.push("映璃首次成為技能目標，傷害 -2");
   }
+  if (actual.id === "youming" && !actual.flags.firstDamageReduced) {
+    actual.flags.firstDamageReduced = true;
+    dmg -= 1;
+    notes.push("幽冥首次受傷 -1");
+  }
 
-  const weixiang = alive(state.players[target.owner].team).find(fighter => fighter.id === "weixiang");
+  const weixiang = alive(state.players[actual.owner].team).find(fighter => fighter.id === "weixiang");
   if (weixiang && amount >= 3 && !weixiang.flags.firstTeamDamageReduced) {
     weixiang.flags.firstTeamDamageReduced = true;
     dmg -= 1;
     notes.push("未響首次 3+ 傷害 -1");
   }
-  if (target.flags.defended) {
+  if (actual.flags.defended) {
     dmg -= 2;
     notes.push("防禦 -2");
   }
-  if (target.flags.nextDamageTakenReduction) {
-    dmg -= target.flags.nextDamageTakenReduction;
-    notes.push(`裁定受傷 -${target.flags.nextDamageTakenReduction}`);
-    target.flags.nextDamageTakenReduction = 0;
+  if (actual.flags.nextDamageTakenReduction) {
+    dmg -= actual.flags.nextDamageTakenReduction;
+    notes.push(`裁定受傷 -${actual.flags.nextDamageTakenReduction}`);
+    actual.flags.nextDamageTakenReduction = 0;
   }
 
-  let actual = redirectTarget(state, target, dmg);
   const actualPlayer = state.players[actual.owner];
   let openingDefenseApplied = false;
   if (state.round === 1 && actualPlayer.openingDefenseUsed && !actualPlayer.team.some(fighter => fighter.flags.tookDamage)) {
@@ -633,8 +777,8 @@ export function damage(snapshot, source, target, amount, opts = {}) {
     notes.push("開局防線 -1");
   }
   if (source?.flags?.confuseDamageCap && actual.owner === source.owner) {
-    dmg = Math.min(dmg, 1);
-    notes.push("混亂打到己方，傷害最多 1");
+    dmg = Math.min(dmg, CONFUSE_FRIENDLY_DAMAGE_CAP);
+    notes.push(`混亂打到己方，傷害最多 ${CONFUSE_FRIENDLY_DAMAGE_CAP}`);
   }
 
   dmg = Math.max(openingDefenseApplied ? 0 : 1, dmg);
@@ -647,8 +791,16 @@ export function damage(snapshot, source, target, amount, opts = {}) {
   log(state, `${label} 對 ${actual.name} 造成 ${before - actual.hpNow} 傷害 (${notes.join("，")}，實際 ${before - actual.hpNow})。`);
   setFx(state, opts.skill ? "skill" : "damage", label, `${actual.name} -${before - actual.hpNow} HP`);
 
-  if (actual.hpNow <= 0) knockout(snapshot, actual, source, { marksBeforeDamage });
+  if (actual.hpNow <= 0) knockout(snapshot, actual, source, { marksBeforeDamage, zuozhePassive: !!opts.zuozhePassive });
   return before - actual.hpNow;
+}
+
+function triggerHengshuoGuardHeal(state, actual, beforeMod, afterMod) {
+  if (actual.flags.hengshuoGuarded && !actual.flags.hengshuoGuardUsed) {
+    actual.flags.hengshuoGuardUsed = true;
+    const hengshuo = alive(state.players[actual.owner].team).find(fighter => fighter.id === "hengshuo");
+    if (hengshuo && afterMod < beforeMod) heal({ state }, hengshuo, 1, "衡朔近身護衛");
+  }
 }
 
 function executeSkill(snapshot, targetKey, opts = {}) {
@@ -677,6 +829,11 @@ function executeSkill(snapshot, targetKey, opts = {}) {
     return { ok: false, actionSpent: true };
   }
 
+  if (queueMirrorPrompt(state, actor, target, "skill", targetKey, opts)) {
+    if (inoApplied && enemyIno) enemyIno.flags.inoUsed = Math.max(0, enemyIno.flags.inoUsed - 1);
+    return { ok: true, pending: "mirror" };
+  }
+
   if (opts.confuseTargetChosen && target) {
     removeStatus(actor, STATUS.CONFUSE);
     actor.flags.confuseDamageCap = target.owner === actor.owner;
@@ -690,7 +847,11 @@ function executeSkill(snapshot, targetKey, opts = {}) {
   log(state, `${actor.name} 使用「${actor.skill.name}」${resonance ? `並觸發共鳴「${actor.res.name}」` : ""}：消耗 ${cost} 能量，冷卻 ${actor.cd}。`);
 
   const before = snapshotSkillRecord(state);
+  actor.flags.mirrorReflectCurrent = !!opts.mirrorReflect;
+  actor.flags.mirrorReflectedThisAction = false;
+  actor.flags.mirrorReflectedOwner = "";
   const ok = resolveSkill(snapshot, actor, target, resonance, opts);
+  actor.flags.mirrorReflectCurrent = false;
   actor.flags.confuseDamageCap = false;
 
   if (!ok) {
@@ -746,19 +907,16 @@ function resolveSkill(snapshot, actor, target, resonance, opts) {
     case "leiting":
       if (!isEnemy(actor, target)) return false;
       damage(snapshot, actor, target, 4, { skill: true, label });
-      if (resonance && actor.flags.leitingResCount < 2) {
-        actor.flags.leitingResCount += 1;
-        addStatus(snapshot, actor.res.name, target, STATUS.OBSERVE);
-      }
+      if (resonance) addStatus(snapshot, actor.res.name, target, STATUS.OBSERVE);
       record = { kind: "damage", amount: 4, name: actor.skill.name };
       break;
     case "baijian": {
       if (!isAlly(actor, target)) return false;
       const minHp = Math.min(...alive(state.players[actor.owner].team).map(member => member.hpNow));
-      heal(snapshot, target, target.hpNow === minHp ? 4 : 3, label);
+      heal(snapshot, target, target.hpNow === minHp ? 3 : 2, label);
       removeNegativeStatus(state, target);
       if (resonance) addStatus(snapshot, actor.res.name, target, STATUS.GUARD);
-      record = { kind: "heal", amount: 3, name: actor.skill.name };
+      record = { kind: "heal", amount: 2, name: actor.skill.name };
       break;
     }
     case "dengzhen":
@@ -888,6 +1046,12 @@ function resolveSkill(snapshot, actor, target, resonance, opts) {
       buildQueue(snapshot);
       break;
     }
+    case "jingren":
+      if (target !== actor) return false;
+      addStatus(snapshot, label, actor, STATUS.GUARD);
+      actor.flags.nextRoundSpdMod += 1;
+      log(state, `${label}：下回合 SPD 變為 4。`);
+      break;
     case "xuntian":
       if (!isEnemy(actor, target)) return false;
       damage(snapshot, actor, target, 5, { skill: true, label });
@@ -897,6 +1061,7 @@ function resolveSkill(snapshot, actor, target, resonance, opts) {
       break;
     case "zuozhe":
       if (!isEnemy(actor, target)) return false;
+      damage(snapshot, actor, target, 2, { skill: true, label });
       if (coin()) {
         log(state, `${label} 擲硬幣：正面。`);
         addStatus(snapshot, label, target, STATUS.CONFUSE);
@@ -908,7 +1073,7 @@ function resolveSkill(snapshot, actor, target, resonance, opts) {
         target.flags.nextRoundSpdMod -= 1;
         log(state, `${target.name} 本回合與下回合 ATK / SPD -1。`);
       }
-      if (resonance && hasStatus(target, STATUS.CONFUSE)) addStatus(snapshot, actor.res.name, target, STATUS.OBSERVE);
+      if (resonance) addStatus(snapshot, actor.res.name, target, STATUS.OBSERVE);
       break;
     default:
       return false;
@@ -1017,7 +1182,11 @@ function defaultFlags() {
     huiyinUsed: false,
     leitingResCount: 0,
     inoUsed: 0,
-    confuseDamageCap: false
+    confuseDamageCap: false,
+    mirrorReflectUsed: 0,
+    mirrorReflectCurrent: false,
+    mirrorReflectedThisAction: false,
+    mirrorReflectedOwner: ""
   };
 }
 
@@ -1039,7 +1208,10 @@ function startRoundForFighter(state, fighter) {
     hengshuoGuardUsed: false,
     hengshuoRedirectUsed: false,
     huiyinUsed: false,
-    confuseDamageCap: false
+    confuseDamageCap: false,
+    mirrorReflectCurrent: false,
+    mirrorReflectedThisAction: false,
+    mirrorReflectedOwner: ""
   });
   if (fighter.flags.nextRoundAtkMod) {
     fighter.flags.atkMod += fighter.flags.nextRoundAtkMod;
@@ -1105,8 +1277,10 @@ function setActiveFromQueue(snapshot) {
   }
 }
 
-function performAttack(snapshot, actor, target, confused) {
+function performAttack(snapshot, actor, target, confused, opts = {}) {
   const state = normalizeBattleState(snapshot);
+  actor.flags.mirrorReflectedThisAction = false;
+  actor.flags.mirrorReflectedOwner = "";
   if (confused || hasStatus(actor, STATUS.CONFUSE)) {
     removeStatus(actor, STATUS.CONFUSE);
     log(state, `${actor.name} 混亂發作，攻擊目標變為 ${target.name}。`);
@@ -1119,7 +1293,7 @@ function performAttack(snapshot, actor, target, confused) {
   }
   if (actor.id === "xuntian" && (hasStatus(target, STATUS.SEAL) || hasStatus(target, STATUS.CONFUSE))) {
     amount += 1;
-    log(state, "訊天被動：攻擊封印或混亂目標，傷害 +1。");
+    log(state, "訊天被動：攻擊封印/混亂目標，傷害 +1。");
   }
   if (actor.flags.buffDmgNext) {
     amount += actor.flags.buffDmgNext;
@@ -1130,7 +1304,11 @@ function performAttack(snapshot, actor, target, confused) {
     amount += 1;
     log(state, "天訊規則補充：普攻傷害 +1。");
   }
-  damage(snapshot, actor, target, amount, { label: `${actor.name} 普通攻擊`, attack: true });
+  damage(snapshot, actor, target, amount, { label: `${actor.name} 普通攻擊`, attack: true, mirrorReflect: !!opts.mirrorReflect });
+  if (actor.id === "jingren") {
+    actor.cd = Math.max(0, actor.cd - 1);
+    log(state, `鏡刃「疾刃回流」：普攻後技能冷卻 -1。`);
+  }
   actor.flags.confuseDamageCap = false;
   log(state, "普通攻擊結算完成：依規則不觸發共鳴。");
 }
@@ -1187,7 +1365,7 @@ function knockout(snapshot, fighter, source, context = {}) {
     fighter.flags.passiveUsed = true;
     const enemies = alive(state.players[other(fighter.owner)].team);
     const minHp = Math.min(...enemies.map(enemy => enemy.hpNow));
-    for (const enemy of enemies) damage(snapshot, fighter, enemy, enemy.hpNow === minHp ? 2 : 1, { label: "作者被動" });
+    for (const enemy of enemies) damage(snapshot, fighter, enemy, enemy.hpNow === minHp ? 2 : 1, { label: "作者被動", zuozhePassive: true });
   }
 
   const leiyouxi = alive(player.team).find(member => member.id === "leiyouxi");
@@ -1198,7 +1376,7 @@ function knockout(snapshot, fighter, source, context = {}) {
   player.marks = clamp(player.marks + 1, 0, RULES.JUDGEMENT_MAX);
   log(state, `${fighter.name} 被擊倒，${sideName(fighter.owner)} 立即獲得 1 裁定（${player.marks}/${RULES.JUDGEMENT_MAX}）。`);
 
-  if (source?.id === "zuozhe" && source.owner !== fighter.owner) {
+  if (context.zuozhePassive && source?.id === "zuozhe" && source.owner !== fighter.owner) {
     const sourcePlayer = state.players[source.owner];
     sourcePlayer.marks = clamp(sourcePlayer.marks + 1, 0, RULES.JUDGEMENT_MAX);
     log(state, `作者被動擊倒敵人：${sideName(source.owner)} 額外獲得 1 裁定。`);

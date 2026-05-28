@@ -25,8 +25,8 @@
       --glow-red: rgba(255,108,122,.28);
       --glow-gold: rgba(255,209,102,.34);
       --soft-line: rgba(230,192,106,.16);
-      --title-font: "Noto Serif TC", "Microsoft JhengHei UI", "Microsoft JhengHei", serif;
-      --body-font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", system-ui, sans-serif;
+      --title-font: "Microsoft JhengHei UI", "Microsoft JhengHei", "PMingLiU", "MingLiU", "Noto Serif TC", serif;
+      --body-font: "Microsoft JhengHei UI", "Microsoft JhengHei", "PMingLiU", "MingLiU", "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
     body {
@@ -1459,6 +1459,7 @@
 <div id="app"></div>
 <script>
 const STATUS = { SEAL:"封印", OBSERVE:"觀測", CONFUSE:"混亂", SLOW:"遲緩", GUARD:"守護" };
+const CONFUSE_FRIENDLY_DAMAGE_CAP = 2;
 const APP_VERSION = "4.2.2";
 const ONLINE_URL = "https://luxfatum-online.onrender.com";
 function apiUrl(path){
@@ -1469,18 +1470,18 @@ function downloadUrl(path){
 }
 const NEG = [STATUS.SEAL, STATUS.OBSERVE, STATUS.CONFUSE, STATUS.SLOW];
 const STATUS_META = {
-  [STATUS.SEAL]: { icon:"印", tone:"bad", desc:"下次行動不能使用技能；行動結束後移除。" },
+  [STATUS.SEAL]: { icon:"印", tone:"bad", desc:"限制下次行動不能使用技能；改用攻擊、防禦或休息後移除。" },
   [STATUS.OBSERVE]: { icon:"測", tone:"bad", desc:"下一次受到傷害 +1，然後移除。" },
-  [STATUS.CONFUSE]: { icon:"亂", tone:"bad", desc:"下次指定目標時由對手選擇合法目標。" },
+  [STATUS.CONFUSE]: { icon:"亂", tone:"bad", desc:`下次指定目標時由對手在原本合法目標中選擇；攻擊不能被改成打己方。` },
   [STATUS.SLOW]: { icon:"緩", tone:"bad", desc:"下回合 SPD -1。" },
   [STATUS.GUARD]: { icon:"護", tone:"good", desc:"可代替其他我方角色承受一次傷害。" }
 };
 const CHARS = [
   {id:"ningyao",name:"寧曜",hp:9,atk:3,spd:2,passive:"每場1次，即將被擊倒時若已有裁定，可消耗1裁定保留1HP。",skill:{name:"寧曜裁定",cost:2,cd:2,desc:"對1敵造成3傷害並封印。"},res:{name:"裁光",desc:"技能後回復1HP。"}},
-  {id:"hengshuo",name:"衡朔",hp:8,atk:2,spd:3,passive:"每回合1次，可代替1名我方角色承受傷害。",skill:{name:"近身護衛",cost:2,cd:2,desc:"我方1角色本回合受傷-2，並移除1個觀測；若成功減傷，衡朔回復1HP。"},res:{name:"護持",desc:"技能目標獲得守護。"}},
+  {id:"hengshuo",name:"衡朔",hp:8,atk:2,spd:3,passive:"每回合1次，可代替1名我方角色承受傷害；若已有守護，由守護優先承傷。",skill:{name:"近身護衛",cost:2,cd:2,desc:"我方1角色本回合受傷-2，並移除1個觀測；若該角色實際承傷且成功減傷，衡朔回復1HP。"},res:{name:"護持",desc:"技能目標獲得守護；守護承傷優先於衡朔被動。"}},
   {id:"youming",name:"幽冥",hp:7,atk:2,spd:4,passive:"每回合第一次受到傷害-1。",skill:{name:"幽影封步",cost:2,cd:1,desc:"對1名敵方角色造成2點傷害，並給予遲緩。"},res:{name:"暗痕",desc:"技能後目標本回合ATK-1。"}},
-  {id:"leiting",name:"雷霆",hp:8,atk:2,spd:3,passive:"普攻HP高於自己的敵人時，傷害+1。",skill:{name:"雷斬突進",cost:3,cd:2,desc:"對1敵造成4傷害。"},res:{name:"壓陣",desc:"技能後給予目標觀測。每場最多2次。"}},
-  {id:"baijian",name:"白繭",hp:8,atk:1,spd:2,passive:"回合結束時，若我方本回合受傷，回復HP最低的我方1HP。",skill:{name:"白色繭房",cost:3,cd:2,desc:"我方1角色回復3HP，並移除1負面狀態；若其HP最低，再回復1HP。"},res:{name:"包覆",desc:"技能目標獲得守護。"}},
+  {id:"leiting",name:"雷霆",hp:8,atk:2,spd:3,passive:"普攻HP高於自己的敵人時，傷害+1。",skill:{name:"雷斬突進",cost:3,cd:2,desc:"對1敵造成4傷害。"},res:{name:"壓陣",desc:"技能後給予目標觀測。"}},
+  {id:"baijian",name:"\u767D\u7E6D",hp:8,atk:1,spd:2,passive:"回合結束時，若我方本回合有人受傷，回復目前HP最低的我方1HP。",skill:{name:"\u767D\u8272\u7E6D\u623F",cost:3,cd:2,desc:"我方1角色回復2HP，並移除1個負面狀態；若該角色目前HP最低，額外回復1HP。"},res:{name:"包覆",desc:"技能目標獲得守護。"}},
   {id:"dengzhen",name:"燈真",hp:7,atk:2,spd:3,passive:"回合開始時，若技能冷卻為0，我方獲得1能量。",skill:{name:"秩序重排",cost:2,cd:2,desc:"選1角色本回合SPD+2或-2；若目標是我方，回復1HP。"},res:{name:"整序",desc:"技能目標本回合受傷-1。"}},
   {id:"ino",name:"伊諾",hp:7,atk:2,spd:3,passive:"每場2次，敵方使用技能時，可使其費用+1；若仍成功，伊諾獲1能量。",skill:{name:"弱點標記",cost:2,cd:1,desc:"給予1敵觀測；若目標已有觀測，改為造成3傷害並移除觀測。"},res:{name:"解析",desc:"技能目標本回合受傷+1。"}},
   {id:"aila",name:"艾菈",hp:7,atk:2,spd:2,passive:"若自己沒有負面狀態，受到技能傷害-1；若有封印，回合開始時移除。",skill:{name:"靜默封存",cost:2,cd:2,desc:"給予1敵封印；若目標有觀測，額外造成2傷害。"},res:{name:"低聲",desc:"技能後獲得1能量。"}},
@@ -1492,8 +1493,9 @@ const CHARS = [
   {id:"huiyin",name:"迴音",hp:7,atk:1,spd:3,passive:"每回合1次，我方獲得負面狀態時，可轉移給自己。",skill:{name:"回聲模仿",cost:2,cd:2,desc:"複製我方上一個可被複製且成功結算的技能；若沒有可複製技能，改為對1敵造成2傷害。"},res:{name:"回聲",desc:"此技能費用-1。"}},
   {id:"yingli",name:"映璃",hp:7,atk:2,spd:4,passive:"不能被觀測；每回合第一次成為技能目標時，該傷害-2。",skill:{name:"視線偏移",cost:2,cd:2,desc:"給予1敵混亂；該敵本回合下次攻擊不能指定映璃。若目標已有混亂，額外造成2傷害。"},res:{name:"偏移",desc:"技能後映璃本回合受傷-1。"}},
   {id:"tianxun",name:"天訊",hp:7,atk:1,spd:4,passive:"回合開始時，選1角色SPD+1；若目標是敵方，其本回合受傷+1。",skill:{name:"規則補充",cost:2,cd:2,desc:"選1項：普攻傷害+1、技能傷害+1、我方全體SPD+1、最低SPD先行動。"},res:{name:"加碼",desc:"可選2項，但天訊本回合不能防禦。"}},
-  {id:"xuntian",name:"訊天",hp:7,atk:3,spd:2,passive:"攻擊被封印或混亂的敵人時，傷害+1。",skill:{name:"紅色爆點",cost:3,cd:2,desc:"對1敵造成5傷害；下回合使用技能費用+1。"},res:{name:"收束",desc:"技能後若目標HP為3以下，額外造成1傷害。"}},
-  {id:"zuozhe",name:"作者",hp:7,atk:2,spd:1,passive:"每場1次，即將被擊倒時，敵方全體受到1傷害；HP最低敵方額外1傷。若因此擊倒敵方角色，作者獲得1裁定。",skill:{name:"我加一條設定",cost:2,cd:2,desc:"選1敵擲硬幣；正面給予混亂，反面令其本回合與下回合ATK/SPD-1。"},res:{name:"重寫",desc:"技能後，若目標有混亂，額外給予觀測。"}}
+  {id:"xuntian",name:"訊天",hp:7,atk:3,spd:2,passive:"攻擊帶有封印/混亂的敵人時，傷害+1。",skill:{name:"紅色爆點",cost:3,cd:2,desc:"對1敵造成5傷害；下回合使用技能費用+1。"},res:{name:"收束",desc:"技能後若目標HP為3以下，額外造成1傷害。"}},
+  {id:"zuozhe",name:"作者",hp:8,atk:2,spd:1,passive:"每場1次，即將被擊倒時，敵方全體受到1傷害；HP最低敵方額外1傷。若因此擊倒敵方角色，作者獲得1裁定。",skill:{name:"我加一條設定",cost:2,cd:2,desc:"對1敵造成2傷害並擲硬幣；正面給予混亂，反面令其本回合與下回合ATK/SPD-1。"},res:{name:"重寫",desc:"技能後額外給予觀測。"}},
+  {id:"jingren",name:"鏡刃",hp:6,atk:2,spd:3,passive:"每場2次，敵方傷害技能或普攻包含鏡刃作為目標時，可選擇發動干擾：該次攻擊不對我方造成傷害，並將傷害反彈給攻擊者；附帶負面狀態仍照常結算，反彈傷害不觸發其他反彈、反擊或受傷效果。",skill:{name:"影步守勢",cost:2,cd:3,desc:"賦予自身守護。下回合，鏡刃的 SPD 變為 4。"},res:{name:"疾刃回流",desc:"鏡刃使用普攻後，技能冷卻 -1。"}}
 ];
 
 const app = document.querySelector("#app");
@@ -1512,7 +1514,7 @@ function freshState() {
   return {
     screen:"menu", round:0, draftTurn:"p1", pickIndex:0, p1Draft:[], p2Draft:[],
     players:null, queue:[], active:null, winner:null, logs:["歡迎來到 LuxFatum v4.2.2 桌面連線版。"],
-    lastSkill:null, lastCopyableSkill:{p1:null,p2:null}, pendingSkill:null, pendingConfuseAttack:null,
+    lastSkill:null, lastCopyableSkill:{p1:null,p2:null}, pendingSkill:null, pendingConfuseAttack:null, pendingMirror:null,
     lowestFirst:false, tianAtkBuff:false, tianSkillDebuff:false, lastHit:null, shakeStamp:0, fx:null
   };
 }
@@ -1523,7 +1525,7 @@ const artFocus = id => ({
   baijian:"center 16%", dengzhen:"center 14%", ino:"center 14%", aila:"center 16%",
   leiyouxi:"center 18%", baidengling:"center 16%", yiaiqian:"center 15%", weixiang:"center 14%",
   xiaomo:"center 18%", huiyin:"center 14%", yingli:"center 16%", tianxun:"center 14%",
-  xuntian:"center 14%", zuozhe:"center 14%"
+  xuntian:"center 14%", zuozhe:"center 14%", jingren:"center 16%"
 }[id] || "center 16%");
 const THEME_SRC = "assets/luxfatum-theme.mp3";
 const audio = {
@@ -1719,10 +1721,12 @@ function fighter(charId, owner) {
   const c = byId(charId);
   return {
     ...clone(c), owner, maxHp:c.hp, hpNow:c.hp, cd:0, statuses:[],
-    flags:{ defended:false, immuneNextDebuff:false, passiveUsed:false, tookDamage:false, firstDamageReduced:false,
+    flags:{ defended:false, immuneNextDebuff:false, passiveUsed:false, tookDamage:false, firstDamageReduced:false, firstTeamDamageReduced:false,
       noAttack:false, noDefend:false, cannotAttackYingli:false, skillTargeted:false, atkMod:0, spdMod:0, damageTakenMod:0,
-      skillCostUp:0, noResNextSkill:false, nextRoundAtkMod:0, nextRoundSpdMod:0, buffDmgNext:0, records:0,
-      hengshuoGuarded:false, hengshuoGuardUsed:false, hengshuoRedirectUsed:false, huiyinUsed:false, leitingResCount:0, inoUsed:0 }
+      nextDamageTakenReduction:0, judgementDamageBonus:0, skillCostUp:0, noResNextSkill:false, nextRoundAtkMod:0, nextRoundSpdMod:0,
+      buffDmgNext:0, records:0, hengshuoGuarded:false, hengshuoGuardUsed:false, hengshuoRedirectUsed:false,
+      huiyinUsed:false, leitingResCount:0, inoUsed:0, confuseDamageCap:false, mirrorReflectUsed:0, mirrorReflectCurrent:false,
+      mirrorReflectedThisAction:false, mirrorReflectedOwner:"" }
   };
 }
 
@@ -1900,8 +1904,10 @@ function nextRound(){
     for(const c of alive(p.team)){
       c.cd = Math.max(0, c.cd - 1);
       c.statuses = c.statuses.filter(s => s !== STATUS.SLOW);
-      Object.assign(c.flags, { defended:false, immuneNextDebuff:false, tookDamage:false, firstDamageReduced:false, noDefend:false,
-        cannotAttackYingli:false, skillTargeted:false, atkMod:0, spdMod:0, damageTakenMod:0, hengshuoGuarded:false, hengshuoGuardUsed:false, hengshuoRedirectUsed:false });
+      Object.assign(c.flags, { defended:false, immuneNextDebuff:false, tookDamage:false, firstDamageReduced:false, firstTeamDamageReduced:false,
+        noDefend:false, cannotAttackYingli:false, skillTargeted:false, atkMod:0, spdMod:0, damageTakenMod:0,
+        nextDamageTakenReduction:0, judgementDamageBonus:0, hengshuoGuarded:false, hengshuoGuardUsed:false,
+        hengshuoRedirectUsed:false, confuseDamageCap:false, mirrorReflectCurrent:false, mirrorReflectedThisAction:false, mirrorReflectedOwner:"" });
       c.flags.huiyinUsed = false;
       if(c.flags.nextRoundAtkMod){ c.flags.atkMod += c.flags.nextRoundAtkMod; c.flags.nextRoundAtkMod = 0; }
       if(c.flags.nextRoundSpdMod){ c.flags.spdMod += c.flags.nextRoundSpdMod; c.flags.nextRoundSpdMod = 0; }
@@ -1980,34 +1986,122 @@ function redirectTarget(target, dmg){
   if(heng && dmg > 0){ heng.flags.hengshuoRedirectUsed = true; log(`衡朔代替 ${target.name} 承受傷害。`); return heng; }
   return target;
 }
+function canMirrorReflect(source, target, opts){
+  const enabled = !!(opts.mirrorReflect || (opts.skill && source?.flags?.mirrorReflectCurrent));
+  return !!(enabled && source && target && source.owner !== target.owner && target.id === "jingren" && target.hpNow > 0 && (opts.attack || opts.skill) && (target.flags.mirrorReflectUsed || 0) < 2);
+}
+function mirrorReflectedByAction(source, target, opts){
+  const enabled = !!(opts.mirrorReflect || (opts.skill && source?.flags?.mirrorReflectCurrent));
+  return !!(enabled && source?.flags?.mirrorReflectedThisAction && source.flags.mirrorReflectedOwner === target?.owner && (opts.attack || opts.skill));
+}
+function triggerMirrorReflect(source, mirror, amount, label){
+  const reflected = Math.max(1, amount);
+  mirror.flags.mirrorReflectUsed = (mirror.flags.mirrorReflectUsed || 0) + 1;
+  source.flags.mirrorReflectedThisAction = true;
+  source.flags.mirrorReflectedOwner = mirror.owner;
+  log(`鏡刃「全域鏡返」發動：取消 ${label} 對我方的傷害，並反彈 ${reflected} 傷害。`);
+  const before = source.hpNow;
+  source.hpNow = Math.max(0, source.hpNow - reflected);
+  state.lastHit = { owner:source.owner, id:source.id, stamp:Date.now() };
+  state.shakeStamp = Date.now();
+  const dealt = before - source.hpNow;
+  if(dealt > 0){ setFx("damage", "全域鏡返", `${source.name} -${dealt} HP`); audio.play("hit"); }
+  if(source.hpNow <= 0) knockout(source, mirror, { mirrorReflect:true });
+  return dealt;
+}
+function mirrorCandidateFor(source, target){
+  if(!source || !target || source.owner === target.owner) return null;
+  const team = state.players[target.owner]?.team || [];
+  const direct = target.id === "jingren" ? target : null;
+  const guard = team.find(c => c.id !== target.id && c.id === "jingren" && c.hpNow > 0 && c.statuses.includes(STATUS.GUARD));
+  const mirror = direct || guard;
+  if(!mirror || mirror.hpNow <= 0 || (mirror.flags.mirrorReflectUsed || 0) >= 2) return null;
+  return mirror;
+}
+function skillMayDamageMirror(actor, target, opts={}){
+  if(!actor || !target) return false;
+  const damageSkills = ["ningyao","youming","leiting","leiyouxi","xiaomo","xuntian","zuozhe"];
+  if(damageSkills.includes(actor.id)) return true;
+  if(actor.id === "ino") return target.statuses.includes(STATUS.OBSERVE);
+  if(actor.id === "aila") return target.statuses.includes(STATUS.OBSERVE);
+  if(actor.id === "yiaiqian") return state.lastSkill?.kind === "damage";
+  if(actor.id === "huiyin") return !state.lastCopyableSkill?.[actor.owner] || state.lastCopyableSkill[actor.owner].kind === "damage";
+  if(actor.id === "yingli") return target.statuses.includes(STATUS.CONFUSE);
+  return false;
+}
+function queueMirrorPrompt(actor, target, action, targetKey, opts={}){
+  if(opts.mirrorDecision || opts.mirrorReflect || opts.mirrorDeclined) return false;
+  if(action === "skill" && !skillMayDamageMirror(actor, target, opts)) return false;
+  const mirror = mirrorCandidateFor(actor, target);
+  if(!mirror) return false;
+  state.pendingMirror = { actorSide:actor.owner, actorId:actor.id, targetKey, action, opts, mirrorSide:mirror.owner, mirrorId:mirror.id };
+  log(`鏡刃可以選擇是否發動「全域鏡返」干擾 ${actor.name} 的${action === "attack" ? "普攻" : "技能"}。`);
+  return true;
+}
+function decideMirror(useReflect){
+  const pending = state.pendingMirror;
+  if(!pending || !canControl(pending.mirrorSide)) return;
+  state.pendingMirror = null;
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId && c.hpNow>0);
+  const target = parseTarget(pending.targetKey);
+  if(!actor || !target) { commit(); return; }
+  const opts = { ...pending.opts, mirrorDecision:true, mirrorReflect:!!useReflect, mirrorDeclined:!useReflect };
+  log(`鏡刃選擇${useReflect ? "發動" : "不發動"}「全域鏡返」。`);
+  if(pending.action === "attack"){
+    if(!performAttack(actor, target, !!opts.confused, opts)){ commit(); return; }
+    clearSeal(actor); closeDialog(); afterAction(); return;
+  }
+  executeSkill(pending.targetKey, { ...opts, actorId:pending.actorId });
+}
+function triggerHengshuoGuardHeal(actual, beforeMod, afterMod){
+  if(actual.flags.hengshuoGuarded && !actual.flags.hengshuoGuardUsed){
+    actual.flags.hengshuoGuardUsed = true;
+    const h = state.players[actual.owner].team.find(c=>c.id==="hengshuo"&&c.hpNow>0);
+    if(h && afterMod < beforeMod) heal(h,1,"衡朔近身護衛");
+  }
+}
 function damage(source, target, amount, opts={}){
   if(!target || target.hpNow <= 0) return 0;
-  let dmg = amount; const owner = target.owner; const label = opts.label || source?.name || "效果";
-  if(target.statuses.includes(STATUS.OBSERVE) && target.id !== "yingli"){ dmg += 1; target.statuses = target.statuses.filter(s=>s!==STATUS.OBSERVE); log(`${target.name} 觀測觸發，傷害+1。`); }
-  dmg += target.flags.damageTakenMod || 0;
-  if(target.flags.hengshuoGuarded && !target.flags.hengshuoGuardUsed){ target.flags.hengshuoGuardUsed = true; const h = state.players[owner].team.find(c=>c.id==="hengshuo"&&c.hpNow>0); if(h) heal(h,1,"衡朔近身護衛"); }
+  let dmg = amount; const label = opts.label || source?.name || "效果";
+  const notes = [`基礎 ${amount}`];
+  if(source?.flags?.judgementDamageBonus){ dmg += source.flags.judgementDamageBonus; notes.push(`裁定傷害 +${source.flags.judgementDamageBonus}`); source.flags.judgementDamageBonus = 0; }
   if(opts.skill && state.tianSkillDebuff) dmg += 1;
-  if(target.id === "youming" && !target.flags.firstDamageReduced){ target.flags.firstDamageReduced = true; dmg -= 1; log("幽冥第一次受傷-1。"); }
-  if(opts.skill && target.id === "aila" && !target.statuses.some(s=>NEG.includes(s))) dmg -= 1;
-  if(opts.skill && target.id === "yingli" && !target.flags.skillTargeted){ target.flags.skillTargeted = true; dmg -= 2; }
-  const wei = alive(state.players[owner].team).find(c=>c.id==="weixiang");
-  if(wei && amount >= 3 && !wei.flags.firstDamageReduced){ wei.flags.firstDamageReduced = true; dmg -= 1; log("未響使首次3以上傷害-1。"); }
-  if(target.flags.defended) dmg -= 2;
-  dmg = Math.max(1, dmg);
-  const actual = redirectTarget(target, dmg);
+  if(opts.skill && state.tianSkillDebuff) notes.push("天訊技能傷害 +1");
+  if(mirrorReflectedByAction(source, target, opts)) return 0;
+  if(canMirrorReflect(source, target, opts)) return triggerMirrorReflect(source, target, Math.max(1, dmg), label);
+  const actual = redirectTarget(target, Math.max(1, dmg));
+  if(actual !== target) notes.push(`由 ${actual.name} 承受`);
+  if(mirrorReflectedByAction(source, actual, opts)) return 0;
+  if(canMirrorReflect(source, actual, opts)) return triggerMirrorReflect(source, actual, Math.max(1, dmg), label);
+  if(actual.statuses.includes(STATUS.OBSERVE) && actual.id !== "yingli"){ dmg += 1; actual.statuses = actual.statuses.filter(s=>s!==STATUS.OBSERVE); notes.push(`${actual.name}觀測 +1`); }
+  if(actual.flags.damageTakenMod){
+    const beforeMod = dmg;
+    dmg += actual.flags.damageTakenMod;
+    notes.push(`${actual.name}受傷修正 ${actual.flags.damageTakenMod > 0 ? "+" : ""}${actual.flags.damageTakenMod}`);
+    triggerHengshuoGuardHeal(actual, beforeMod, dmg);
+  }
+  if(opts.skill && actual.id === "aila" && !actual.statuses.some(s=>NEG.includes(s))){ dmg -= 1; notes.push("艾菈技能傷害 -1"); }
+  if(opts.skill && actual.id === "yingli" && !actual.flags.skillTargeted){ actual.flags.skillTargeted = true; dmg -= 2; notes.push("映璃技能目標 -2"); }
+  if(actual.id === "youming" && !actual.flags.firstDamageReduced){ actual.flags.firstDamageReduced = true; dmg -= 1; notes.push("幽冥首次受傷 -1"); }
+  const wei = alive(state.players[actual.owner].team).find(c=>c.id==="weixiang");
+  if(wei && amount >= 3 && !wei.flags.firstTeamDamageReduced){ wei.flags.firstTeamDamageReduced = true; dmg -= 1; notes.push("未響首次 3+ 傷害 -1"); }
+  if(actual.flags.defended){ dmg -= 2; notes.push("防禦 -2"); }
+  if(actual.flags.nextDamageTakenReduction){ dmg -= actual.flags.nextDamageTakenReduction; notes.push(`裁定受傷 -${actual.flags.nextDamageTakenReduction}`); actual.flags.nextDamageTakenReduction = 0; }
   const p = state.players[actual.owner];
+  let openingDefenseApplied = false;
   if(state.round === 1 && p.openingDefenseUsed && !p.team.some(c=>c.flags.tookDamage)) p.openingDefenseUsed = false;
-  if(state.round === 1 && !p.openingDefenseUsed){ p.openingDefenseUsed = true; dmg = Math.max(0, dmg - 1); log("開局防線：首次受傷-1。"); }
-  if(source?.flags?.confuseDamageCap && actual.owner === source.owner) dmg = Math.min(dmg, 1);
+  if(state.round === 1 && !p.openingDefenseUsed){ p.openingDefenseUsed = true; openingDefenseApplied = true; dmg -= 1; notes.push("開局防線 -1"); }
+  if(source?.flags?.confuseDamageCap && actual.owner === source.owner){ dmg = Math.min(dmg, CONFUSE_FRIENDLY_DAMAGE_CAP); notes.push(`混亂打到己方，傷害最多 ${CONFUSE_FRIENDLY_DAMAGE_CAP}`); }
+  dmg = Math.max(openingDefenseApplied ? 0 : 1, dmg);
   const before = actual.hpNow; actual.hpNow = Math.max(0, actual.hpNow - dmg); if(actual.hpNow < before) actual.flags.tookDamage = true;
   state.lastHit = { owner:actual.owner, id:actual.id, stamp:Date.now() };
   state.shakeStamp = Date.now();
-  log(`${label} 對 ${actual.name} 造成 ${before - actual.hpNow} 傷害。`);
+  log(`${label} 對 ${actual.name} 造成 ${before - actual.hpNow} 傷害（${notes.join("，")}）。`);
   if(before > actual.hpNow){ setFx(opts.skill ? "skill" : "damage", label, `${actual.name} -${before - actual.hpNow} HP`); audio.play("hit"); }
-  if(actual.hpNow <= 0) knockout(actual, source);
+  if(actual.hpNow <= 0) knockout(actual, source, { zuozhePassive: !!opts.zuozhePassive });
   return before - actual.hpNow;
 }
-function knockout(c, source){
+function knockout(c, source, context={}){
   audio.play("ko");
   const p = state.players[c.owner];
   if(c.id === "ningyao" && !c.flags.passiveUsed && p.marks > 0){ c.flags.passiveUsed = true; p.marks -= 1; c.hpNow = 1; log("寧曜消耗1裁定保留1HP。"); return; }
@@ -2015,11 +2109,11 @@ function knockout(c, source){
   if(c.id === "xiaomo" && !c.flags.passiveUsed){ c.flags.passiveUsed = true; if(coin()){ c.hpNow = 1; log("小莫硬幣正面，保留1HP。"); return; } p.marks = clamp(p.marks+1,0,3); log("小莫反面，獲得1裁定。"); }
   if(c.id === "zuozhe" && !c.flags.passiveUsed){
     c.flags.passiveUsed = true; const enemies = alive(state.players[other(c.owner)].team); const min = Math.min(...enemies.map(e=>e.hpNow));
-    for(const e of enemies) damage(c, e, e.hpNow === min ? 2 : 1, { label:"作者自爆" });
+    for(const e of enemies) damage(c, e, e.hpNow === min ? 2 : 1, { label:"作者自爆", zuozhePassive:true });
   }
   const lei = alive(p.team).find(x=>x.id==="leiyouxi"); if(lei) lei.flags.buffDmgNext += 1;
   p.marks = clamp(p.marks+1,0,3); log(`${c.name} 被擊倒，${sideName(c.owner)} 獲得1裁定。`);
-  if(source?.id === "zuozhe" && source.owner !== c.owner){ state.players[source.owner].marks = clamp(state.players[source.owner].marks+1,0,3); log("作者自爆擊倒敵方，獲得1裁定。"); }
+  if(context.zuozhePassive && source?.id === "zuozhe" && source.owner !== c.owner){ state.players[source.owner].marks = clamp(state.players[source.owner].marks+1,0,3); log("作者自爆擊倒敵方，獲得1裁定。"); }
 }
 
 function requestAttack(){
@@ -2032,9 +2126,11 @@ function requestAttack(){
   }
   openDialog("attack");
 }
-function performAttack(actor, target, confused=false){
+function performAttack(actor, target, confused=false, opts={}){
   if(!actor || !target || actor.flags.noAttack) return false;
   if(actor.flags.cannotAttackYingli && target.id === "yingli"){ alert("不能指定映璃"); return false; }
+  actor.flags.mirrorReflectedThisAction = false;
+  actor.flags.mirrorReflectedOwner = "";
   if(confused || actor.statuses.includes(STATUS.CONFUSE)){
     actor.statuses = actor.statuses.filter(s=>s!==STATUS.CONFUSE);
     log(`${actor.name} 混亂發作，攻擊了 ${target.name}。`);
@@ -2045,13 +2141,15 @@ function performAttack(actor, target, confused=false){
   if(actor.id === "xuntian" && (target.statuses.includes(STATUS.SEAL) || target.statuses.includes(STATUS.CONFUSE))) dmg += 1;
   if(actor.flags.buffDmgNext){ dmg += actor.flags.buffDmgNext; actor.flags.buffDmgNext = 0; }
   if(state.tianAtkBuff) dmg += 1;
-  damage(actor, target, dmg, { label:`${actor.name}普攻` });
+  damage(actor, target, dmg, { label:`${actor.name}普攻`, attack:true, mirrorReflect:!!opts.mirrorReflect });
+  if(actor.id === "jingren"){ actor.cd = Math.max(0, actor.cd - 1); log("鏡刃「疾刃回流」：普攻後技能冷卻 -1。"); }
   actor.flags.confuseDamageCap = false;
   return true;
 }
 function attack(targetKey){
   const actor = activeF(); if(!actor || !canControl(actor.owner)) return;
   let target = parseTarget(targetKey); if(!target) return;
+  if(queueMirrorPrompt(actor, target, "attack", targetKey, { confused:false })){ closeDialog(); commit(); return; }
   if(!performAttack(actor, target, false)) return;
   clearSeal(actor); closeDialog(); afterAction();
 }
@@ -2061,12 +2159,14 @@ function decideConfuseAttack(targetKey){
   const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId && c.hpNow>0);
   const target = parseTarget(targetKey);
   if(!actor || !target) return;
+  if(!confusionTargets(actor, pending.action).some(t=>t.c===target)){ alert("混亂目標不合法"); return; }
   if(actor.flags.cannotAttackYingli && target.id === "yingli"){ alert("不能指定映璃"); return; }
   state.pendingConfuseAttack = null;
   if(pending.action === "skill"){
     executeSkill(targetKey, {...pending.opts, actorId:pending.actorId, confuseTargetChosen:true});
     return;
   }
+  if(queueMirrorPrompt(actor, target, "attack", targetKey, { confused:true })){ closeDialog(); commit(); return; }
   if(!performAttack(actor, target, true)){ state.pendingConfuseAttack = pending; return; }
   clearSeal(actor); closeDialog(); afterAction();
 }
@@ -2109,7 +2209,8 @@ function tianChoicesOk(actor, res, choices){
 
 function useSkill(targetKey, opts={}){
   audio.play("skill");
-  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.cd > 0 || actor.statuses.includes(STATUS.SEAL)) return;
+  const actor = activeF(); if(!actor || !canControl(actor.owner) || actor.cd > 0) return;
+  if(actor.statuses.includes(STATUS.SEAL)){ log(`${actor.name} 被封印，不能使用技能。`); clearSeal(actor); closeDialog(); afterAction(); return; }
   const p = state.players[actor.owner]; let res = !!opts.res;
   if(res && p.resUsed >= 2) return alert("本回合共鳴已達上限");
   if(res && !alive(p.team).some(c=>c.id!==actor.id)) return alert("需要至少1名其他我方存活才能共鳴");
@@ -2152,14 +2253,22 @@ function executeSkill(targetKey, opts={}){
     closeDialog(); afterAction(); return;
   }
   const target = parseTarget(targetKey);
+  if(queueMirrorPrompt(actor, target, "skill", targetKey, opts)){
+    if(inoApplied) enemyIno.flags.inoUsed = Math.max(0, enemyIno.flags.inoUsed - 1);
+    closeDialog(); commit(); return;
+  }
   const confusedSkill = !!opts.confuseTargetChosen && target;
   if(confusedSkill){
     actor.statuses = actor.statuses.filter(s=>s!==STATUS.CONFUSE);
     actor.flags.confuseDamageCap = target.owner === actor.owner;
     log(`${actor.name} 混亂發作，技能指定了 ${target.name}。`);
   }
+  actor.flags.mirrorReflectCurrent = !!opts.mirrorReflect;
+  actor.flags.mirrorReflectedThisAction = false;
+  actor.flags.mirrorReflectedOwner = "";
   p.energy -= cost; actor.cd = actor.skill.cd; actor.flags.skillCostUp = 0; if(res) p.resUsed += 1;
   const ok = resolveSkill(actor, target, res, opts);
+  actor.flags.mirrorReflectCurrent = false;
   actor.flags.confuseDamageCap = false;
   if(!ok){
     p.energy = clamp(p.energy + cost, 0, 6);
@@ -2177,10 +2286,10 @@ function resolveSkill(a,t,res,opts){
   const name = `${a.name}「${a.skill.name}」`; let record = null;
   switch(a.id){
     case "ningyao": damage(a,t,3,{skill:true,label:name}); addStatus(name,t,STATUS.SEAL); if(res) heal(a,1,a.res.name); record={kind:"damage",amount:3}; break;
-    case "hengshuo": if(!t||t.owner!==a.owner)return false; t.flags.damageTakenMod-=2; t.flags.hengshuoGuarded=true; t.statuses=t.statuses.filter(s=>s!==STATUS.OBSERVE); if(res)addStatus(a.res.name,t,STATUS.GUARD); break;
+    case "hengshuo": if(!t||t.owner!==a.owner)return false; t.flags.damageTakenMod-=2; t.flags.hengshuoGuarded=true; t.statuses=t.statuses.filter(s=>s!==STATUS.OBSERVE); log(`${name}：${t.name} 本回合受傷 -2；若守護與衡朔被動同時可承傷，守護優先。`); if(res)addStatus(a.res.name,t,STATUS.GUARD); break;
     case "youming": damage(a,t,2,{skill:true,label:name}); addStatus(name,t,STATUS.SLOW); if(res)t.flags.atkMod-=1; record={kind:"damage",amount:2}; break;
-    case "leiting": damage(a,t,4,{skill:true,label:name}); if(res){ if(a.flags.leitingResCount<2){ a.flags.leitingResCount+=1; addStatus(a.res.name,t,STATUS.OBSERVE); } } record={kind:"damage",amount:4}; break;
-    case "baijian": if(!t||t.owner!==a.owner)return false; { const min=Math.min(...alive(state.players[a.owner].team).map(c=>c.hpNow)); heal(t,t.hpNow===min?4:3,name); removeNeg(t); } if(res)addStatus(a.res.name,t,STATUS.GUARD); record={kind:"heal",amount:3}; break;
+    case "leiting": damage(a,t,4,{skill:true,label:name}); if(res)addStatus(a.res.name,t,STATUS.OBSERVE); record={kind:"damage",amount:4}; break;
+    case "baijian": if(!t||t.owner!==a.owner)return false; { const min=Math.min(...alive(state.players[a.owner].team).map(c=>c.hpNow)); heal(t,t.hpNow===min?3:2,name); removeNeg(t); } if(res)addStatus(a.res.name,t,STATUS.GUARD); record={kind:"heal",amount:2}; break;
     case "dengzhen": if(!t)return false; t.flags.spdMod += opts.mode==="down"?-2:2; if(t.owner===a.owner)heal(t,1,name); if(res)t.flags.damageTakenMod-=1; break;
     case "ino": if(t.statuses.includes(STATUS.OBSERVE)){ t.statuses=t.statuses.filter(s=>s!==STATUS.OBSERVE); damage(a,t,3,{skill:true,label:name}); record={kind:"damage",amount:3}; } else addStatus(name,t,STATUS.OBSERVE); if(res)t.flags.damageTakenMod+=1; break;
     case "aila": addStatus(name,t,STATUS.SEAL); if(t.statuses.includes(STATUS.OBSERVE)){ damage(a,t,2,{skill:true,label:name}); record={kind:"damage",amount:2}; } if(res)state.players[a.owner].energy=clamp(state.players[a.owner].energy+1,0,6); break;
@@ -2204,7 +2313,8 @@ function resolveSkill(a,t,res,opts){
     case "yingli": { const had=t.statuses.includes(STATUS.CONFUSE); addStatus(name,t,STATUS.CONFUSE); t.flags.cannotAttackYingli=true; if(had)damage(a,t,2,{skill:true,label:name}); if(res)a.flags.damageTakenMod-=1; break; }
     case "tianxun": { const choices=opts.choices||[]; const selected=choices.slice(0,res?2:1); if(!selected.length)return false; for(const ch of selected){ if(ch==="atk")state.tianAtkBuff=true; if(ch==="skill")state.tianSkillDebuff=true; if(ch==="spd")for(const ally of alive(state.players[a.owner].team))ally.flags.spdMod+=1; if(ch==="low")state.lowestFirst=true; } if(res)a.flags.noDefend=true; log(`${name}套用 ${selected.join("、")}。`); break; }
     case "xuntian": damage(a,t,5,{skill:true,label:name}); a.flags.skillCostUp+=1; if(res&&t.hpNow>0&&t.hpNow<=3)damage(a,t,1,{skill:true,label:a.res.name}); record={kind:"damage",amount:5}; break;
-    case "zuozhe": if(!t||t.owner===a.owner)return false; if(coin())addStatus(name,t,STATUS.CONFUSE); else{ t.flags.atkMod-=1; t.flags.spdMod-=1; t.flags.nextRoundAtkMod-=1; t.flags.nextRoundSpdMod-=1; log(`${t.name} 本回合與下回合 ATK/SPD-1。`); } if(res&&t.statuses.includes(STATUS.CONFUSE))addStatus(a.res.name,t,STATUS.OBSERVE); break;
+    case "zuozhe": if(!t||t.owner===a.owner)return false; damage(a,t,2,{skill:true,label:name}); if(coin())addStatus(name,t,STATUS.CONFUSE); else{ t.flags.atkMod-=1; t.flags.spdMod-=1; t.flags.nextRoundAtkMod-=1; t.flags.nextRoundSpdMod-=1; log(`${t.name} 本回合與下回合 ATK/SPD-1。`); } if(res)addStatus(a.res.name,t,STATUS.OBSERVE); break;
+    case "jingren": if(t!==a)return false; addStatus(name,a,STATUS.GUARD); a.flags.nextRoundSpdMod += 1; log(`${name}：下回合 SPD 變為 4。`); break;
   }
   if(record){
     state.lastSkill=record;
@@ -2221,8 +2331,8 @@ function judgement(type,targetKey){
   const cost={atk:1,def:1,spd:1,heal:2,seal:3}[type]; if(p.marks<cost)return; const t=parseTarget(targetKey);
   if(["spd","heal"].includes(type)&&(!t||t.owner!==actor.owner))return; if(type==="seal"&&(!t||t.owner===actor.owner))return;
   p.marks-=cost; p.judgementUsed=true;
-  if(type==="atk"){ actor.flags.atkMod+=1; log("裁定：本次/本回合傷害+1。"); }
-  if(type==="def"){ actor.flags.damageTakenMod-=1; log("裁定：受傷-1。"); }
+  if(type==="atk"){ actor.flags.judgementDamageBonus+=1; log("裁定：下一次造成傷害+1。"); }
+  if(type==="def"){ actor.flags.nextDamageTakenReduction+=1; log("裁定：下一次受傷-1。"); }
   if(type==="spd"){ t.flags.spdMod+=1; log(`裁定：${t.name} SPD+1。`); }
   if(type==="heal"){ t.cd=Math.max(0,t.cd-1); heal(t,1,"裁定"); }
   if(type==="seal"){ t.flags.noResNextSkill=true; addStatus("裁定封殺",t,STATUS.SLOW); }
@@ -2250,20 +2360,26 @@ function targetList(filter){
   const actor=activeF(); const out=[];
   for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)){
     if(filter==="ally" && side!==actor.owner)continue; if(filter==="enemy" && side===actor.owner)continue;
+    if(filter==="self" && c!==actor)continue;
     out.push({key:`${side}:${c.id}`, side, c});
   }
   return out;
 }
 function skillFilter(actor){
+  if(actor.id==="jingren")return"self";
   if(["hengshuo","baijian","weixiang"].includes(actor.id))return"ally";
   if(actor.id==="zuozhe")return"enemy";
   if(["dengzhen","yiaiqian","huiyin"].includes(actor.id))return"all";
   if(["baidengling","tianxun"].includes(actor.id))return"none";
   return"enemy";
 }
-function confusionTargets(actor){
+function confusionTargets(actor, action="attack"){
   const out = [];
+  const filter = action === "skill" ? skillFilter(actor) : "enemy";
   for(const side of ["p1","p2"]) for(const c of alive(state.players[side].team)){
+    if(filter==="ally" && side!==actor?.owner)continue;
+    if(filter==="enemy" && side===actor?.owner)continue;
+    if(filter==="none")continue;
     const blocked = actor?.flags.cannotAttackYingli && c.id === "yingli";
     if(!blocked) out.push({key:`${side}:${c.id}`, side, c});
   }
@@ -2333,11 +2449,11 @@ function renderRoomBanner(){
 function renderRulesPage(){
   const hero = ["ningyao","yingli","leiyouxi"].map(id=>byId(id));
   const statusRows = [
-    ["封印",`下次行動<span class="hi-red">不能使用技能</span>；該行動結束後移除。休息也可提前移除。`],
+    ["封印",`下次行動<span class="hi-red">不能使用技能</span>；改用攻擊、防禦或休息後移除。休息也可提前移除。`],
     ["觀測",`下一次受到傷害 <span class="hi-red">+1</span>，然後移除。映璃不能被觀測。`],
-    ["混亂",`下一次需要指定目標時，由<span class="hi-gold">對手指定合法目標</span>，然後移除。若打到原使用者我方角色，該次傷害最多為 <span class="hi-red">1</span>。`],
+    ["混亂",`下一次需要指定目標時，由<span class="hi-gold">對手在原本合法目標中指定</span>，然後移除。普通攻擊不能被改成打己方。`],
     ["遲緩",`下回合 <span class="hi-blue">SPD -1</span>。`],
-    ["守護",`我方其他角色受到傷害時，可由持有守護者代替承受，承受後移除。`]
+    ["守護",`我方其他角色受到傷害時，可由持有守護者代替承受，承受後移除；守護優先於衡朔被動承傷。`]
   ];
   return `<section class="rules-page">
     <section class="rules-hero">
@@ -2353,7 +2469,8 @@ function renderRulesPage(){
       <article class="rule-card"><h3>開局設定</h3><ul><li>每位玩家選 <span class="hi-gold">3 名角色</span>，起始能量 <span class="hi-blue">2</span>，上限 <span class="hi-blue">6</span>。</li><li>起始裁定 <span class="hi-gold">0</span>，上限 <span class="hi-gold">3</span>。</li><li>初始技能冷卻為 <span class="hi-blue">0</span>，第 1 回合只要能量夠就可使用技能。</li><li>推薦選角順序：A → B → B → A → A → B。</li></ul></article>
       <article class="rule-card"><h3>回合流程</h3><ul><li>回合開始：雙方 <span class="hi-blue">+2 能量</span>，技能冷卻 -1，處理回合開始效果。</li><li>排定順序：<span class="hi-gold">SPD 高者先</span>；同速時 HP 較低者先。</li><li>輪流行動：攻擊、技能、防禦、休息擇一。</li><li>回合結束：處理白繭等回合結束效果。</li></ul></article>
       <article class="rule-card"><h3>行動</h3><ul><li><span class="hi-red">攻擊</span>：指定 1 名敵方，造成自身 ATK 傷害，不觸發共鳴。</li><li><span class="hi-blue">技能</span>：支付費用並放上冷卻，成功結算後可共鳴。</li><li><span class="hi-gold">防禦</span>：受傷 -2，最低仍為 1，第一次負面狀態可免疫。</li><li><span class="hi-blue">休息</span>：回復 1 HP，移除 1 個負面狀態。</li></ul></article>
-      <article class="rule-card"><h3>共鳴</h3><ul><li>只有<span class="hi-blue">成功使用技能後</span>才能觸發。</li><li>需要至少 1 名其他我方角色存活。</li><li>每位玩家每回合最多觸發 <span class="hi-gold">2 次</span>。</li><li>費用 1 的技能若共鳴，需額外支付 <span class="hi-blue">1 能量</span>。</li></ul></article>
+      <article class="rule-card"><h3>共鳴</h3><ul><li>只有<span class="hi-blue">成功使用技能後</span>才能觸發。</li><li>需要至少 1 名其他我方角色存活。</li><li>每位玩家的隊伍每回合最多觸發 <span class="hi-gold">2 次</span>。</li><li>費用 1 的技能若共鳴，需額外支付 <span class="hi-blue">1 能量</span>。</li></ul></article>
+      <article class="rule-card"><h3>傷害結算</h3><ul><li>先決定原目標，再依序檢查<span class="hi-gold">守護</span>與<span class="hi-blue">衡朔被動</span>是否代替承傷。</li><li>只有實際承傷者會套用觀測、受傷修正、防禦、裁定減傷與開局防線。</li><li>衡朔技能的 -2 只在技能目標實際承傷時生效並觸發回復；若守護先承傷，不會消耗這次護衛回復。</li></ul></article>
       <article class="rule-card"><h3>裁定標記</h3><ul><li>己方角色被擊倒時，立即獲得 <span class="hi-gold">1 裁定</span>。</li><li>每位玩家每回合最多使用 <span class="hi-gold">1 次</span>裁定效果。</li><li>可用於傷害 +1、受傷 -1、SPD +1、冷卻 -1 並回 1 HP、封殺共鳴並給遲緩。</li><li>寧曜保命必須在該次傷害結算前已持有裁定。</li></ul></article>
       <article class="rule-card"><h3>狀態</h3><div class="status-list">${statusRows.map(([name,desc])=>`<div class="status-line"><span class="pill">${name}</span><span>${desc}</span></div>`).join("")}</div></article>
     </section>
@@ -2365,7 +2482,7 @@ function renderRulesPage(){
 }
 function renderMenu(){
   const invite = initialRoom && net.mode === "local" ? `<div class="card"><h2>加入邀請房間</h2><p>偵測到邀請房號：</p><div class="room-code">${initialRoom}</div><button onclick="joinRoom('${initialRoom}')">加入這個房間</button></div>` : "";
-  const featured = ["xiaomo","tianxun","yingli","leiyouxi","ningyao","zuozhe"].map(id=>byId(id));
+  const featured = ["jingren","xiaomo","tianxun","yingli","leiyouxi","zuozhe"].map(id=>byId(id));
   return `<section class="menu-shell">
     <div class="game-hero"><div><h2>LuxFatum<br>裁定對決</h2><p>線上房間、輪抽選角、裁定與共鳴都已整合在同一個可玩的對戰介面。</p></div></div>
     <div class="character-ribbon">${featured.map(c=>`<div class="ribbon-card" style="background-image:url('${cardImage(c.id)}');--focus:${artFocus(c.id)}"><span>${c.name}</span></div>`).join("")}</div>
@@ -2374,7 +2491,7 @@ function renderMenu(){
       <div class="card"><h2>本機雙人</h2><p>同一台電腦輪流操作 P1 / P2。</p><button onclick="startLocal()">本機雙人遊玩</button></div>
       <div class="card"><h2>線上開房</h2><p>建立房間後會顯示大房號與邀請連結。把連結傳給 P2，P2 打開後可直接加入。</p><button onclick="createRoom()">建立線上房間</button></div>
       <div class="card release-card"><h2>下載與更新</h2><p>Windows 安裝檔可直接安裝到電腦；免安裝 zip 保留給測試與手動解壓。版本會自動檢查，未來可支援強制更新。</p><div class="release-actions"><button onclick="downloadInstaller()">下載安裝檔</button><button onclick="downloadWindows()">免安裝 zip</button><button onclick="downloadPackage()">Render/GitHub 包</button><button onclick="openVersionInfo()">檢查更新</button></div></div>
-      <div class="card"><h2>規則頁</h2><p>查看回合流程、狀態、裁定與 18 名角色技能圖鑑。</p><button onclick="showRules()">查看規則</button></div>
+      <div class="card"><h2>規則頁</h2><p>查看回合流程、狀態、裁定與 ${CHARS.length} 名角色技能圖鑑。</p><button onclick="showRules()">查看規則</button></div>
       <div class="card"><h2>輸入房號加入</h2><p>如果對方只傳房號，請在這裡輸入。</p><div class="row"><input id="roomInput" value="${initialRoom}" placeholder="例如 ABC23"><button onclick="joinRoom()">加入</button></div></div>
     </section>
   </section>`;
@@ -2416,7 +2533,7 @@ function renderDraft(){
 }
 function renderBattle(){
   if(state.winner)return `<div class="card"><h2>遊戲結束：${state.winner}</h2><button onclick="startLocal()">重新開始本機遊戲</button></div>`;
-  return `<section class="battle-table unity-hud">${renderCombatDrawer()}${renderTurnFlow()}${renderTeam("p2")}<div class="battle-core"><div class="core-stage">${renderActiveSpotlight()}${renderSkillBurst()}</div><div class="core-command">${renderPendingIno()}${renderPendingConfuse()}${renderActions()}${renderSurrenderPanel()}</div></div>${renderTeam("p1")}</section>`;
+  return `<section class="battle-table unity-hud">${renderCombatDrawer()}${renderTurnFlow()}${renderTeam("p2")}<div class="battle-core"><div class="core-stage">${renderActiveSpotlight()}${renderSkillBurst()}</div><div class="core-command">${renderPendingMirror()}${renderPendingIno()}${renderPendingConfuse()}${renderActions()}${renderSurrenderPanel()}</div></div>${renderTeam("p1")}</section>`;
 }
 function renderTurnFlow(){
   const steps = ["回合開始","行動順序","輪流行動","回合結束"];
@@ -2437,7 +2554,7 @@ function renderActiveSpotlight(){
   const a = activeF();
   if(!a) return "";
   const p = state.players[a.owner];
-  return `<section class="active-spotlight"><div><span class="pill ${a.owner}">${sideName(a.owner)} 行動中</span><h2>${a.name}</h2><p>${a.skill.name}｜耗 ${a.skill.cost}｜冷卻 ${a.skill.cd}<br>${a.skill.desc}</p><p class="spotlight-res">共鳴 ${a.res.name}｜${a.res.desc}</p><div class="turn-hud"><span class="pill gold">第 ${state.round} 回合</span><span class="pill blue">能量 ${p.energy}/6</span><span class="pill gold">裁定 ${p.marks}/3</span><span class="pill">共鳴 ${p.resUsed}/2</span></div></div><div class="spotlight-frame" style="--portrait:url('${cardImage(a.id)}');--focus:${artFocus(a.id)}"><img class="spotlight-art" src="${cardImage(a.id)}" alt="${a.name}"></div></section>`;
+  return `<section class="active-spotlight"><div><span class="pill ${a.owner}">${sideName(a.owner)} 行動中</span><h2>${a.name}</h2><p>${a.skill.name}｜耗 ${a.skill.cost}｜冷卻 ${a.skill.cd}<br>${a.skill.desc}</p><p class="spotlight-res">共鳴 ${a.res.name}｜${a.res.desc}</p><div class="turn-hud"><span class="pill gold">第 ${state.round} 回合</span><span class="pill blue">能量 ${p.energy}/6</span><span class="pill gold">裁定 ${p.marks}/3</span><span class="pill">本回合共鳴 ${p.resUsed}/2</span></div></div><div class="spotlight-frame" style="--portrait:url('${cardImage(a.id)}');--focus:${artFocus(a.id)}"><img class="spotlight-art" src="${cardImage(a.id)}" alt="${a.name}"></div></section>`;
 }
 function renderSkillBurst(){
   if(!state.fx || Date.now() - state.fx.stamp > 2200) return "";
@@ -2453,7 +2570,7 @@ function renderTeamResource(p){
   return `<div class="team-resource">
     <div class="energy-meter" title="能量 ${p.energy}/6"><div class="energy-fill" style="--energy:${energyPct}%"></div></div>
     <div class="judgement-slots" title="裁定 ${p.marks}/3">${[0,1,2].map(i=>`<span class="judgement-slot ${i<p.marks?"filled":""}"></span>`).join("")}</div>
-    <span class="pill">共鳴 ${p.resUsed}/2</span>
+    <span class="pill">本回合共鳴 ${p.resUsed}/2</span>
   </div>`;
 }
 function renderFighter(c){
@@ -2475,15 +2592,16 @@ function renderSkillPanel(c){
     <div class="skill-panel-head"><span>${c.name} 技能面板</span><span class="pill ${c.owner}">${sideName(c.owner)}</span></div>
     <div class="skill-list">
       <div class="skill-entry"><div class="row"><strong>${c.skill.name}</strong><span class="pill blue">費用 ${currentCost}</span><span class="pill gold">冷卻 ${c.cd}/${c.skill.cd}</span>${p?`<span class="pill">能量 ${p.energy}/6</span>`:""}</div><p>${c.skill.desc}</p></div>
-      <div class="skill-entry"><div class="row"><strong>共鳴 ${c.res.name}</strong><span class="pill gold">每回合 ${p?.resUsed ?? 0}/2</span></div><p>${c.res.desc}</p></div>
+      <div class="skill-entry"><div class="row"><strong>共鳴 ${c.res.name}</strong><span class="pill gold">本回合共鳴 ${p?.resUsed ?? 0}/2</span></div><p>${c.res.desc}</p></div>
       <div class="skill-entry"><div class="row"><strong>被動</strong><span class="pill">常駐</span></div><p>${c.passive}</p></div>
     </div>
   </div>`;
 }
 function renderActions(){
   const a=activeF(); if(!a)return "";
+  if(state.pendingMirror) return `<section class="actions"><h2>等待鏡刃干擾決定</h2><p class="notice">鏡刃正在選擇是否發動全域鏡返。</p></section>`;
   if(state.pendingSkill) return `<section class="actions"><h2>等待伊諾干涉決定</h2><p class="notice">對方正在選擇是否讓技能費用 +1。</p></section>`;
-  if(state.pendingConfuseAttack) return `<section class="actions"><h2>等待混亂目標</h2><p class="notice">對方正在指定混亂攻擊的目標。</p></section>`;
+  if(state.pendingConfuseAttack) return `<section class="actions"><h2>等待混亂目標</h2><p class="notice">對方正在指定混亂目標。</p></section>`;
   const own=canControl(a.owner); const canSkill=a.cd<=0&&!a.statuses.includes(STATUS.SEAL)&&state.players[a.owner].energy>=skillCost(a,false);
   const skillHint = a.statuses.includes(STATUS.SEAL) ? "封印中" : (a.cd>0 ? `冷卻 ${a.cd}` : `耗 ${skillCost(a,false)}`);
   const p = state.players[a.owner];
@@ -2531,13 +2649,27 @@ function renderPendingConfuse(){
   const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId);
   const defender = other(pending.actorSide);
   const canDecide = canControl(defender);
-  const targets = confusionTargets(actor);
+  const targets = confusionTargets(actor, pending.action);
   const actionName = pending.action === "skill" ? "技能" : "攻擊";
   return `<section class="actions pending">
-    <h2>混亂攻擊目標</h2>
+    <h2>混亂目標</h2>
     <p>${actor?.name || "角色"} 的${actionName}由 ${sideName(defender)} 指定目標。</p>
-    <p class="desc">若指定到原使用者的我方角色，該次傷害最多為 1。</p>
+    <p class="desc">普通攻擊只能改選敵方目標；技能只可改成該技能原本合法的目標。</p>
     ${canDecide ? `<div class="choice-grid">${targets.map(t=>`<button class="choice" onclick="decideConfuseAttack('${t.key}')">${sideName(t.side)} ${t.c.name}<br><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span></button>`).join("")}</div>` : `<p class="notice">等待 ${sideName(defender)} 選擇攻擊目標。</p>`}
+  </section>`;
+}
+function renderPendingMirror(){
+  const pending = state.pendingMirror;
+  if(!pending) return "";
+  const actor = state.players[pending.actorSide]?.team.find(c=>c.id===pending.actorId);
+  const mirror = state.players[pending.mirrorSide]?.team.find(c=>c.id===pending.mirrorId);
+  const canDecide = canControl(pending.mirrorSide);
+  const actionName = pending.action === "attack" ? "普攻" : "技能";
+  return `<section class="actions pending">
+    <h2>全域鏡返</h2>
+    <p>${actor?.name || "敵方角色"} 的${actionName}包含 ${mirror?.name || "鏡刃"} 作為目標。</p>
+    <p class="desc">發動後，該次攻擊不會對我方角色造成傷害，並將傷害反彈給攻擊者；附帶負面狀態仍正常結算。剩餘 ${Math.max(0, 2 - (mirror?.flags?.mirrorReflectUsed || 0))}/2 次。</p>
+    ${canDecide ? `<div class="action-grid"><button onclick="decideMirror(true)">發動鏡返</button><button onclick="decideMirror(false)">不發動</button></div>` : `<p class="notice">等待 ${sideName(pending.mirrorSide)} 決定是否發動鏡刃。</p>`}
   </section>`;
 }
 function renderLog(){
@@ -2555,10 +2687,11 @@ function renderDialog(){
     const resReason = resDisabled
       ? (state.players[a.owner].resUsed>=2 ? "本回合共鳴次數已達上限。" : "需要至少1名其他我方角色存活。")
       : `勾選後技能總費用：${resCost} 能量。`;
-    const common = `<div class="dialog-section">
+    const info = `<div class="dialog-section">
       <h3>技能資訊</h3>
       <div class="skill-meta"><span class="pill">消耗 ${skillCost(a,false)} 能量</span><span class="pill">冷卻 ${a.skill.cd}</span><span class="pill">目前能量 ${state.players[a.owner].energy}/6</span></div>
-    </div>
+    </div>`;
+    const common = `${info}
     <div class="dialog-section resonance-box">
       <h3>共鳴</h3>
       <label class="row"><input id="resBox" type="checkbox" ${resDisabled?"disabled":""} style="width:auto"> 使用共鳴：${a.res.name}</label>
@@ -2566,6 +2699,7 @@ function renderDialog(){
       <p class="desc">${resReason}</p>
     </div>`;
     const resExpr = "document.querySelector('#resBox').checked";
+    if(a.id==="jingren")return modal(a.skill.name, `${info}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">${a.skill.desc}</p><p class="desc">疾刃回流會在鏡刃使用普攻後自動處理。</p></div><button onclick="useSkill('${a.owner}:${a.id}',{})">施放影步守勢</button>`);
     if(a.id==="tianxun")return modal(a.skill.name, `${common}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">未使用共鳴最多選 1 項；使用共鳴最多選 2 項。</p></div><div class="dialog-section"><h3>選擇效果</h3><div class="choice-grid">${["atk:普攻傷害+1","skill:技能傷害+1","spd:我方全體SPD+1","low:最低SPD先行動"].map(s=>{const [v,l]=s.split(":");return`<label class="choice"><input name="tian" value="${v}" type="checkbox"> <span class="choice-title">${l}</span></label>`}).join("")}</div></div><button onclick="useSkill(null,{res:${resExpr},choices:[...document.querySelectorAll('input[name=tian]:checked')].map(i=>i.value)})">施放</button>`);
     if(a.id==="baidengling")return modal(a.skill.name, `${common}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">${a.skill.desc}</p></div><button onclick="useSkill(null,{res:${resExpr}})">施放希望微光</button>`);
     if(a.id==="dengzhen")return modal(a.skill.name, `${common}<div class="dialog-section"><h3>效果</h3><p class="skill-desc">${a.skill.desc}</p></div><div class="dialog-section"><h3>選擇目標</h3><div class="choice-grid">${targetList("all").map(t=>`<div class="choice"><span class="choice-title">${sideName(t.side)} ${t.c.name}</span><span class="pill">HP ${t.c.hpNow}/${t.c.maxHp}</span><div class="row" style="margin-top:12px"><button onclick="useSkill('${t.key}',{mode:'up',res:${resExpr}})">SPD +2</button><button onclick="useSkill('${t.key}',{mode:'down',res:${resExpr}})">SPD -2</button></div></div>`).join("")}</div></div>`);

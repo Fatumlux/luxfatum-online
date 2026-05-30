@@ -48,6 +48,16 @@ const mime = {
   ".exe": "application/vnd.microsoft.portable-executable"
 };
 
+function pathInside(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return relative === "" || (!!relative && !relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function resolveInside(root, relFile) {
+  const full = path.resolve(root, relFile);
+  return pathInside(root, full) ? full : null;
+}
+
 function json(res, status, data) {
   const body = JSON.stringify(data);
   res.writeHead(status, {
@@ -437,22 +447,28 @@ async function handleApi(req, res, url) {
 }
 
 function serveFile(req, res, url) {
-  let file = decodeURIComponent(url.pathname);
+  let file = "";
+  try {
+    file = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400, { "content-type": "text/plain; charset=utf-8" });
+    res.end("Bad request");
+    return;
+  }
   if (file === "/") file = "/index.html";
   const relFile = file.replace(/^\/+/, "");
-  const rootFull = path.normalize(path.join(ROOT, relFile));
-  const buildFull = path.normalize(path.join(WEB_BUILD, relFile));
-  const publicFull = path.normalize(path.join(PUBLIC_DIR, relFile));
-  const full = fs.existsSync(buildFull) && buildFull.startsWith(WEB_BUILD)
-    ? buildFull
-    : fs.existsSync(publicFull) && publicFull.startsWith(PUBLIC_DIR)
-      ? publicFull
-      : rootFull;
-  if (!full.startsWith(ROOT)) {
+  const rootFull = resolveInside(ROOT, relFile);
+  if (!rootFull) {
     res.writeHead(403);
     res.end("Forbidden");
     return;
   }
+  const candidates = [
+    resolveInside(WEB_BUILD, relFile),
+    resolveInside(PUBLIC_DIR, relFile),
+    rootFull
+  ].filter(Boolean);
+  const full = candidates.find(candidate => fs.existsSync(candidate)) || rootFull;
   fs.stat(full, (err, stat) => {
     if (err || !stat.isFile()) {
       res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });

@@ -1,0 +1,26 @@
+{
+  "appId": "luxfatum.online",
+  "name": "LuxFatum 裁定對決",
+  "version": "v5.0.0",
+  "channel": "stable",
+  "minSupportedVersion": "v4.7.1",
+  "forceUpdate": false,
+  "updatedAt": "2026-05-30",
+  "downloadUrl": "/download/installer.exe",
+  "installerUrl": "/download/installer.exe",
+  "windowsZipUrl": "/download/windows.zip",
+  "renderPackageUrl": "/download/package.zip",
+  "onlineUrl": "https://luxfatum-online.onrender.com",
+  "versionUrl": "/api/version",
+  "notes": [
+    "V5 正式版鎖定 GitHub/Render 線上部署與 Windows App 下載版。",
+    "線上版保留 Render 房間 API、版本 API、下載入口與健康檢查。",
+    "App 版保留離線本機/AI 對戰，並可連到 Render 房間與更新檢查。",
+    "Windows App 改用內建 localhost 靜態伺服器載入 web-build，修正 WebView2 黑畫面。",
+    "App 圖示改回原 LuxFatum logo，並輸出 Windows 可辨識的多尺寸 ico。",
+    "角色選取、祈衡代價來源、敵方目標與失去 HP 選項改用統一低亮金邊。",
+    "主選單、更新紀錄與文件改為正式版玩家語氣。",
+    "V5 正式節奏下修起始能量、開戰 HP +1，保留核心 3v3、25 角色、裁定、共鳴與勝負判定。"
+  ],
+  "forceUpdateMessage": "目前版本需要更新後才能連線。請下載最新版 LuxFatum 安裝檔。"
+}

@@ -1,0 +1,1 @@
+import{CanvasFilterSystem as e,FilterPipe as t,FilterSystem as n,extensions as r}from"./lib-Dg6CgE4g.js";r.add(n,e),r.add(t);

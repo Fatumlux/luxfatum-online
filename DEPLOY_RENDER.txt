@@ -1,0 +1,58 @@
+LuxFatum Render / GitHub 部署說明
+
+目標
+- 這個專案要部署成 Render Web Service，不要選 Static Site。
+- Render 會執行 `npm ci && npm run build`，產生 `web-build/`，再用 `npm start` 啟動 `server.js`。
+- 正確部署後，首頁應該是 LuxFatum v5.0.0 主選單；快速對戰會載入 React + Pixi 戰鬥畫面。
+
+GitHub 上傳前檢查
+- Repo 第一層要直接看到這些檔案/資料夾：
+  - package.json
+  - package-lock.json
+  - server.js
+  - render.yaml
+  - index.html
+  - src/
+  - public/assets/
+  - web-build/
+  - dist/
+  - installer/
+  - launcher/
+- 不要多包一層外層資料夾。
+- 不要上傳 node_modules/、output/、test-results/；本專案的 .gitignore 已排除。
+
+第一次推到 GitHub
+1. 在 GitHub 建一個新的 repository。
+2. 在這個資料夾執行：
+
+   git branch -M main
+   git add .
+   git commit -m "Deploy LuxFatum v5.0.0"
+   git remote add origin https://github.com/你的帳號/你的repo.git
+   git push -u origin main
+
+Render 部署
+1. 打開 https://dashboard.render.com
+2. New + -> Blueprint
+3. 選剛剛的 GitHub repository
+4. Render 會讀取 render.yaml
+5. 按 Apply / Deploy
+
+Render 設定應該是
+- Service type: web
+- Runtime: node
+- Build command: npm ci && npm run build
+- Start command: npm start
+- Health check path: /api/health
+- Node version: 20
+
+部署後檢查
+- https://你的網站.onrender.com/
+- https://你的網站.onrender.com/api/health
+- https://你的網站.onrender.com/api/version
+
+如果版本號是 v5.0.0 但內容還是舊的
+1. 到 Render 的 deploy log，確認有看到 `npm run build` 和 `web-build/index.html`。
+2. 到 Render 手動 Redeploy，必要時選 Clear build cache & deploy。
+3. 確認 GitHub repo 第一層真的有 src/、public/assets/、package.json、server.js、render.yaml。
+4. 確認 Render 連到的是新的 repo/branch，不是舊專案。

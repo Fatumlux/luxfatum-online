@@ -1,0 +1,1 @@
+import{CanvasRenderer as e}from"./lib-Dg6CgE4g.js";export{e as CanvasRenderer};

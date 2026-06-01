@@ -1,8 +1,8 @@
 {
   "name": "luxfatum-online-v5",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "private": true,
-  "description": "LuxFatum v5.0.0 GitHub Render and App release",
+  "description": "LuxFatum v5.0.1 MVP balance and rules text hotfix",
   "scripts": {
     "start": "node server.js",
     "dev": "vite --host 0.0.0.0",

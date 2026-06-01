@@ -78,6 +78,8 @@ Common fields:
 - `actionSpent`
 - `pending`
 
+`actionSpent` is reserved for actions that actually advance the active fighter out of the turn queue. Judgement effects are once per player per round, but they do not spend the current fighter action.
+
 ## Rule Constants
 
 `src/game.ts` exports `RULES`.

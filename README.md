@@ -1,11 +1,14 @@
-# LuxFatum 裁定對決 v5.0.0
+# LuxFatum 裁定對決 v5.0.1
 
-`v5.0.0｜GitHub Render 與 App 正式版`
+`v5.0.1｜MVP 平衡與規則文字修正版`
 
 LuxFatum 是 3v3 小隊戰角色卡牌遊戲。雙方透過攻擊、技能、共鳴、狀態與裁定標記擊倒對手全部角色。
 
-## v5.0.0 重點
+## v5.0.1 重點
 
+- 裁定規則與 UI 文字已同步：每方每回合最多 1 次，且不會結束目前角色行動。
+- 修正天訊速度重排造成的二動問題；規則補充調整為 +1 MVP 平衡值。
+- 修正迴音回聲模仿目標邏輯：複製傷害指定敵方，複製治療指定我方。
 - GitHub repository 可直接接 Render Web Service 或 Blueprint 部署。
 - Render 線上版提供首頁、房間 API、版本 API、健康檢查與下載入口。
 - Windows App 版可離線玩本機/AI 對戰，也能連到 Render 房間與更新檢查。

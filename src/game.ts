@@ -61,10 +61,10 @@ export function getActiveKey(snapshot) {
 }
 
 export function installRulesBridge() {
-  if (typeof window === "undefined" || window.LuxFatumRules?.version === "5.0.0-rules") return;
+  if (typeof window === "undefined" || window.LuxFatumRules?.version === "5.0.1-rules") return;
 
   const bridge = {
-    version: "5.0.0-rules",
+    version: "5.0.1-rules",
     STATUS,
     RULES,
     startBattle: () => {

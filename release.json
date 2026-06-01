@@ -1,11 +1,11 @@
 {
   "appId": "luxfatum.online",
   "name": "LuxFatum 裁定對決",
-  "version": "v5.0.0",
+  "version": "v5.0.1",
   "channel": "stable",
   "minSupportedVersion": "v4.7.1",
   "forceUpdate": false,
-  "updatedAt": "2026-05-30",
+  "updatedAt": "2026-06-01",
   "downloadUrl": "/download/installer.exe",
   "installerUrl": "/download/installer.exe",
   "windowsZipUrl": "/download/windows.zip",
@@ -13,6 +13,9 @@
   "onlineUrl": "https://luxfatum-online.onrender.com",
   "versionUrl": "/api/version",
   "notes": [
+    "v5.0.1 同步規則文字與版本號，明確標示裁定不會結束目前角色行動。",
+    "修正迴音「回聲模仿」目標邏輯：複製傷害只能指定敵方，複製治療只能指定我方。",
+    "修正天訊造成的回合佇列重排二動問題，並將規則補充調整為 +1 MVP 平衡值。",
     "V5 正式版鎖定 GitHub/Render 線上部署與 Windows App 下載版。",
     "線上版保留 Render 房間 API、版本 API、下載入口與健康檢查。",
     "App 版保留離線本機/AI 對戰，並可連到 Render 房間與更新檢查。",

@@ -336,3 +336,41 @@ Test Result:
 - PASS: `npm run test:rules` with 15 rule tests passed, including Huiyin copied target legality coverage.
 - PASS: `npm run smoke:ui`; UI smoke passed and report recorded 0 failures.
 - PASS: `npm run build`; Vite production build completed into `web-build/`.
+
+===============================================================================
+[DONE] STEP_10_TEXT_VERSION_GITHUB_UPLOAD
+-------------------------------------------------------------------------------
+Purpose:
+Synchronize player-facing rules/text with the latest gameplay fixes, bump the
+public version, and push the scoped update to GitHub.
+
+Completion Notes:
+- Synchronized player-facing rules and helper text with the latest gameplay fixes.
+- Updated Judgement text in the rules guide, action objective, action button, judgement dialog, and training hint to clarify that Judgement does not end the current fighter action.
+- Updated Huiyin text in character data, skill details, and metadata to clarify copied damage targets enemies while copied healing targets allies.
+- Bumped public version metadata from v5.0.0 to v5.0.1 across app config, release metadata, npm package metadata, package lock, and the rules bridge.
+- Added v5.0.1 release notes covering text sync, Huiyin target legality, Tianxun +1 tuning, and the turn-queue double-action fix.
+- Updated the GitHub README title and highlight bullets to v5.0.1 without staging unrelated local README rewrites.
+- Pushed the scoped update to `origin/main`.
+
+Changed Files:
+- DOMAIN_MODEL.md
+- package.json
+- package-lock.json
+- README.md
+- release.json
+- progress.txt
+- src/App.tsx
+- src/config/version.json
+- src/data/characters.ts
+- src/data/rulesGuide.ts
+- src/game.ts
+
+Test Result:
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run test:rules` with 15 rule tests passed.
+- PASS: `npm run version:show` reported game and ruleset version v5.0.1.
+- PASS: `npm run smoke:ui`; UI smoke passed and report written to `artifacts/v5.0.1-smoke/smoke-report.json`.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.

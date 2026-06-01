@@ -367,7 +367,7 @@ function deriveObjectiveState(snapshot: GameSnapshot): ObjectiveState {
   }
   const actor = rulesActiveF(snapshot) as Fighter | null;
   const targets = actor && state.players ? fromTargets(rulesTargetList(snapshot, actor.statuses.includes(STATUS.CONFUSE) ? "all" : "enemy"), fighter => `可被 ${actor.name} 普攻指定`, ["合法目標"]) : [];
-  return { phase: actor ? "action" : "round-start", title: actor ? "行動目標" : "回合準備", detail: actor ? `${sideName(actor.owner)} ${actor.name} 可以攻擊、使用技能、防禦、休息或裁定。` : "正在處理回合開始與行動順序。", controller: actor?.owner || "", actorName: actor?.name || "", pendingKind: actor ? "action" : "round-start", confirmLabel: actor ? "選擇行動" : "等待流程", targets };
+  return { phase: actor ? "action" : "round-start", title: actor ? "行動目標" : "回合準備", detail: actor ? `${sideName(actor.owner)} ${actor.name} 可以攻擊、使用技能、防禦或休息；裁定可插入使用且不結束行動。` : "正在處理回合開始與行動順序。", controller: actor?.owner || "", actorName: actor?.name || "", pendingKind: actor ? "action" : "round-start", confirmLabel: actor ? "選擇行動" : "等待流程", targets };
 }
 
 function appendLog(state: GameState, message: string) {
@@ -2286,7 +2286,7 @@ function TrainingGuide({ state }: { state: GameState }) {
     state.pendingTianxunFocus ? "先選一名我方角色獲得 SPD +1，觀察行動序如何改變。" : "",
     state.pendingFengxingStar || state.pendingDebt || state.pendingTimeTax || state.pendingQihengBalance ? "處理待決效果；每個待決都會標出操作者、合法目標與結果。" : "",
     state.pendingMirror || state.pendingSkill || state.pendingConfuseAttack || state.pendingLiewuCombo ? "這是反制或改目標待決，先看預覽再確認。" : "",
-    state.active ? `${activeName} 行動中：試著先攻擊，再找下一輪使用技能、休息與裁定。` : "",
+    state.active ? `${activeName} 行動中：裁定不會結束行動；攻擊、技能、防禦或休息才會推進回合。` : "",
     !state.active && !state.winner ? "等待回合開始待決完成後，系統會建立行動序。" : "",
     state.winner ? "訓練已結算；可以再來一局或回主選單查看本機戰績。" : ""
   ].find(Boolean) || "跟著右側指令台完成這一回合。";
@@ -2613,7 +2613,7 @@ const SKILL_DETAILS: Record<string, { target: string; effects: string[]; impact:
   yiaiqian: { target: "依被複製技能而定", effects: ["消耗 1 紀錄。", "複製上一個成功結算技能的基礎傷害或治癒值 +1。", "若沒有紀錄，對 1 敵造成 2 傷害。"], impact: ["只複製數值，不改寫原技能的完整附加規則。", "紀錄最多 3 個。"], resonance: ["獲得 1 能量；若消耗最後 1 個紀錄，額外獲得 1 能量。"] },
   weixiang: { target: "我方 1 名", effects: ["目標獲得守護。", "目標回復 1 HP。"], impact: ["守護可代替其他我方角色承傷一次。"], resonance: ["目標本回合下次受傷額外 -1。"] },
   xiaomo: { target: "敵方 1 名", effects: ["擲硬幣。", "正面：造成 4 傷害。", "反面：目標混亂，不造成傷害。"], impact: ["混亂會讓下一次指定目標由對手決定。", "反面不造成傷害且不觸發「下注」的遲緩追加。"], resonance: ["「下注」的遲緩追加不會在反面觸發。"] },
-  huiyin: { target: "依複製技能而定", effects: ["複製我方上一個可複製且成功結算的技能，數值 +1。", "若沒有可複製技能，改為對 1 敵造成 2 傷害。"], impact: ["可被複製的內容以最後記錄的傷害或治癒數值為準。"], resonance: ["此技能費用 -1。"] },
+  huiyin: { target: "依複製技能而定", effects: ["複製我方上一個可複製且成功結算的技能，數值 +1。", "複製傷害時只能指定敵方；複製治療時只能指定我方。", "若沒有可複製技能，改為對 1 敵造成 2 傷害。"], impact: ["可被複製的內容以最後記錄的傷害或治癒數值為準。", "技能視窗只會顯示目前複製類型合法的目標。"], resonance: ["此技能費用 -1。"] },
   yingli: { target: "敵方 1 名", effects: ["造成 1 傷害並給予混亂。"], impact: ["若目標已有混亂，額外造成 2 傷害。"], resonance: ["映璃本回合受傷 -1。"] },
   tianxun: { target: "選擇規則效果", effects: ["可選普攻傷害 +1、技能傷害 +1、我方全體 SPD +1、最低 SPD 先行動。"], impact: ["未共鳴最多選 1 項。", "回合開始被動會先由操作者選 1 名我方角色 SPD +1。"], resonance: ["可選 2 項，但天訊本回合不能防禦。"] },
   xuntian: { target: "敵方 1 名", effects: ["造成 3 傷害。"], impact: ["下回合訊天使用技能費用 +1。"], resonance: ["若目標技能後 HP 為 2 以下，額外造成 1 傷害。"] },
@@ -2824,7 +2824,7 @@ function Actions({ snapshot, state, canControl, onRequestAttack, onOpenDialog, o
         <button data-smoke="action-skill" aria-keyshortcuts="S" onClick={() => onOpenDialog("skill")} disabled={!own || !canSkill}><span className="command-label">技能</span><span className="command-note">{actor.skill.name}｜{skillHint}</span></button>
         <button data-smoke="action-defend" aria-keyshortcuts="D" onClick={onDefend} disabled={!own || actor.flags.noDefend}><span className="command-label">防禦</span><span className="command-note">本次受傷 -2，並免疫下一個負面狀態</span></button>
         <button data-smoke="action-rest" aria-keyshortcuts="R" onClick={onRest} disabled={!own}><span className="command-label">休息</span><span className="command-note">回復 1 HP，移除 1 個負面狀態</span></button>
-        <button data-smoke="action-judgement" aria-keyshortcuts="J" className="judgement-action" onClick={() => onOpenDialog("judgement")} disabled={!own || player.judgementUsed || player.marks < 1}><span className="command-label">裁定</span><span className="command-note">目前 {player.marks}/3，可補傷害、提速或救場</span></button>
+        <button data-smoke="action-judgement" aria-keyshortcuts="J" className="judgement-action" onClick={() => onOpenDialog("judgement")} disabled={!own || player.judgementUsed || player.marks < 1}><span className="command-label">裁定</span><span className="command-note">目前 {player.marks}/3，不結束行動</span></button>
       </div>
       {showBattleHints ? <p className="quick-tip">{own ? actionHint(actor) : "等待對方操作，這邊會自動同步最新戰況。"}</p> : null}
       {showBattleHints ? <StatusHelp fighter={actor} /> : null}
@@ -3106,7 +3106,7 @@ function JudgementDialog({ snapshot, onClose, onJudgement }: { snapshot: GameSna
     <Modal title="裁定" onClose={onClose}>
       <div className="dialog-section judgement-primer">
         <h3>本回合裁定</h3>
-        <p className="desc">目前 {sideName(actor?.owner || "")} 裁定 {player?.marks ?? 0}/{RULES.JUDGEMENT_MAX}。每方每回合最多使用 1 次裁定。</p>
+        <p className="desc">目前 {sideName(actor?.owner || "")} 裁定 {player?.marks ?? 0}/{RULES.JUDGEMENT_MAX}。每方每回合最多使用 1 次裁定；裁定不會結束目前角色行動。</p>
       </div>
       <div className="choice-grid">
         {JUDGEMENT_GUIDE.filter(guide => guide.scope === "self").map(guide => renderButton(guide))}

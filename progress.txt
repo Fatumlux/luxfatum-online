@@ -374,3 +374,47 @@ Test Result:
 - PASS: `npm run version:show` reported game and ruleset version v5.0.1.
 - PASS: `npm run smoke:ui`; UI smoke passed and report written to `artifacts/v5.0.1-smoke/smoke-report.json`.
 - PASS: `npm run build`; Vite production build completed into `web-build/`.
+
+===============================================================================
+[DONE] STEP_11_RENDER_FRONTEND_STATIC_SYNC
+-------------------------------------------------------------------------------
+Purpose:
+Fix the Render online page serving the old v5.0.0 frontend bundle after the
+v5.0.1 backend/version API update.
+
+Completion Notes:
+- Verified the Render `/api/version` endpoint was already on v5.0.1, but the
+  deployed homepage still served the old v5.0.0 `web-build/index.html` and
+  `index-CA4FvWMg.js` frontend bundle.
+- Updated the root HTML title to v5.0.1 and regenerated the Vite production
+  build so `web-build/index.html` references the v5.0.1 frontend bundle.
+- Included the new generated frontend chunk files in the scoped Git update so
+  Render can serve the refreshed static build even when using repo-tracked
+  `web-build` output.
+- Left unrelated local dirty files and deleted card asset entries unstaged.
+
+Changed Files:
+- index.html
+- progress.txt
+- web-build/index.html
+- web-build/assets/BitmapFont-CcfbAZjt.js
+- web-build/assets/CanvasRenderer-BnSDXUK1.js
+- web-build/assets/OpeningTrailer-DgiXCzwJ.js
+- web-build/assets/PixiBattle-Cm14VMg0.js
+- web-build/assets/WebGLRenderer-DG_3hQnF.js
+- web-build/assets/WebGPURenderer-CWDiHcMa.js
+- web-build/assets/browserAll-CAuDbWYn.js
+- web-build/assets/howler-BNaZRtq9.js
+- web-build/assets/index-DJVTbRPg.js
+- web-build/assets/init-C-0M_U_x.js
+- web-build/assets/lib-DSJLB65e.js
+- web-build/assets/webworkerAll-C2uCDn_f.js
+
+Test Result:
+- PASS: `npm run build`; Vite production build generated v5.0.1 static output.
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run test:rules` with 15 rule tests passed.
+- PASS: `npm run version:show` reported game and ruleset version v5.0.1.
+- PASS: `npm run smoke:ui`; UI smoke passed and report written to `artifacts/v5.0.1-smoke/smoke-report.json`.

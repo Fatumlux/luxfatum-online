@@ -1,0 +1,1 @@
+import"./init-C-0M_U_x.js";import{AccessibilitySystem as e,Container as t,DOMPipe as n,EventSystem as r,FederatedContainer as i,accessibilityTarget as a,extensions as o}from"./lib-DSJLB65e.js";o.add(e),o.mixin(t,a),o.add(n),o.add(r),o.mixin(t,i);

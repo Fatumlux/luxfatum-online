@@ -10,6 +10,7 @@
     "preview": "vite preview --host 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "check": "node --check server.js",
+    "validate:domain": "node scripts/validate-domain-model.mjs",
     "version:show": "node scripts/show-version.mjs",
     "test:rules": "node scripts/test-rules.mjs",
     "smoke:ui": "node scripts/smoke-ui.mjs",

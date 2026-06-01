@@ -32,6 +32,7 @@ export const RULES = {
 
 const SIDES: Side[] = ["p1", "p2"];
 const CONFUSE_FRIENDLY_DAMAGE_CAP = 2;
+const TIANXUN_RULE_BONUS = 1;
 
 export function readGameSnapshot() {
   if (typeof window.LuxFatumGameSnapshot !== "function") return null;
@@ -304,6 +305,7 @@ export function buildQueue(snapshot) {
   const list = [];
   for (const side of SIDES) {
     for (const fighter of alive(state.players[side].team)) {
+      if (fighter.flags.actedRound === state.round) continue;
       list.push({ side, id: fighter.id, spd: currentSpd(fighter), hp: fighter.hpNow });
     }
   }
@@ -1212,7 +1214,7 @@ export function judgement(snapshot: RuleSnapshot, type: string, targetKey?: stri
     heal: `${target?.name || actor.name} 回復校準`,
     seal: `${target?.name || "目標"} 共鳴封殺`
   }[type] || "裁定完成", actor, target || actor);
-  return { ok: true, actionSpent: true };
+  return { ok: true };
 }
 
 export function finishAction(snapshot: RuleSnapshot): RuleActionResult {
@@ -1220,6 +1222,7 @@ export function finishAction(snapshot: RuleSnapshot): RuleActionResult {
   if (!state?.players) return { ok: false };
   const actor = activeF(snapshot);
   const spent = state.active ? { ...state.active } : (actor ? { side: actor.owner, id: actor.id } : null);
+  if (actor) actor.flags.actedRound = state.round || 0;
   if (actor) resolveDebtAfterAction(snapshot, actor);
   resolveWinner(state);
   if (state.winner) return { ok: true };
@@ -1230,7 +1233,10 @@ export function finishAction(snapshot: RuleSnapshot): RuleActionResult {
   } else if (state.queue?.length) {
     state.queue.shift();
   }
-  state.queue = (state.queue || []).filter(item => getFighter(state, item.side, item.id)?.hpNow > 0);
+  state.queue = (state.queue || []).filter(item => {
+    const fighter = getFighter(state, item.side, item.id);
+    return fighter?.hpNow > 0 && fighter.flags.actedRound !== state.round;
+  });
   if (!state.queue.length) {
     endRound(snapshot);
   } else {
@@ -1299,7 +1305,7 @@ export function confusionTargets(snapshot: RuleSnapshot, actor?: Fighter | null,
   const state = normalizeBattleState(snapshot);
   if (!state?.players) return [];
   const out: TargetEntry[] = [];
-  const filter = action === "skill" ? skillFilter(actor) : "enemy";
+  const filter = action === "skill" ? skillTargetFilter(snapshot, actor) : "enemy";
   for (const side of SIDES) {
     for (const fighter of alive(state.players[side].team)) {
       if (filter === "ally" && side !== actor?.owner) continue;
@@ -1321,6 +1327,16 @@ export function skillFilter(actor?: Fighter | null): SkillFilter {
   if (["dengzhen", "yiaiqian", "huiyin"].includes(actor.id)) return "all";
   if (["baidengling", "tianxun"].includes(actor.id)) return "none";
   return "enemy";
+}
+
+export function skillTargetFilter(snapshot: RuleSnapshot, actor?: Fighter | null): SkillFilter {
+  const state = normalizeBattleState(snapshot);
+  if (!actor) return "none";
+  if (actor.id === "huiyin") {
+    const copy = state?.lastCopyableSkill?.[actor.owner];
+    return copy?.kind === "heal" ? "ally" : "enemy";
+  }
+  return skillFilter(actor);
 }
 
 export function skillCost(actor, resonance = false) {
@@ -1538,8 +1554,8 @@ export function damage(snapshot: RuleSnapshot, source: RuleSource, target: Fight
     sourceActor.flags.judgementDamageBonus = 0;
   }
   if (opts.skill && state.tianSkillDebuff) {
-    dmg += 2;
-    notes.push("天訊技能傷害 +2");
+    dmg += TIANXUN_RULE_BONUS;
+    notes.push(`天訊技能傷害 +${TIANXUN_RULE_BONUS}`);
   }
 
   if (mirrorReflectedByAction(sourceActor, target, opts)) return 0;
@@ -1910,6 +1926,8 @@ function resolveSkill(snapshot: RuleSnapshot, actor: Fighter, target: Fighter | 
       const copy = state.lastCopyableSkill?.[actor.owner];
       if (copy) {
         const amount = copy.amount + 1;
+        if (copy.kind === "damage" && !isEnemy(actor, target)) return false;
+        if (copy.kind === "heal" && !isAlly(actor, target)) return false;
         if (copy.kind === "damage") damage(snapshot, actor, target, amount, { skill: true, label: `${label} 複製 ${copy.name}` });
         else heal(snapshot, target, amount, `${label} 複製 ${copy.name}`);
         record = { kind: copy.kind, amount, name: actor.skill.name };
@@ -1939,7 +1957,7 @@ function resolveSkill(snapshot: RuleSnapshot, actor: Fighter, target: Fighter | 
       for (const choice of selected) {
         if (choice === "atk") state.tianAtkBuff = true;
         if (choice === "skill") state.tianSkillDebuff = true;
-        if (choice === "spd") for (const ally of alive(state.players[actor.owner].team)) ally.flags.spdMod += 2;
+        if (choice === "spd") for (const ally of alive(state.players[actor.owner].team)) ally.flags.spdMod += TIANXUN_RULE_BONUS;
         if (choice === "low") state.lowestFirst = true;
       }
       if (resonance) actor.flags.noDefend = true;
@@ -2195,6 +2213,7 @@ function defaultFlags() {
     actionTargetedSongya: false,
     songyaResUsedRound: false,
     qihengBalancePromptedRound: 0,
+    actedRound: 0,
     shiliPassiveRound: 0,
     healedThisRound: false,
     corrosionStacks: 0,
@@ -2238,6 +2257,7 @@ function startRoundForFighter(state, fighter) {
     shiliPassiveRound: 0,
     healedThisRound: false,
     usedSkillThisRound: false,
+    actedRound: 0,
     liewuGuardReady: false
   });
   if (fighter.flags.nextRoundAtkMod) {
@@ -2321,8 +2341,8 @@ function performAttack(snapshot: RuleSnapshot, actor: Fighter, target: Fighter, 
     actor.flags.buffDmgNext = 0;
   }
   if (state.tianAtkBuff) {
-    amount += 2;
-    log(state, "天訊規則補充：普攻傷害 +2。");
+    amount += TIANXUN_RULE_BONUS;
+    log(state, `天訊規則補充：普攻傷害 +${TIANXUN_RULE_BONUS}。`);
   }
   const combo = actor.id === "liewu" && opts.liewuUseCombo
     ? clamp(actor.flags.battleIntent || 0, 0, 1)

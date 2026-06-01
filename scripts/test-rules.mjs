@@ -164,34 +164,43 @@ test("rest heals 1 HP and removes one negative status", () => {
   assert(!actor.statuses.includes(game.STATUS.CONFUSE), "rest should remove confusion");
 });
 
-test("judgement options 1/2/3 match implemented rules", () => {
+test("judgement options 1/2/3 match implemented rules without spending the action", () => {
   const snapshot = battle(["ningyao", "baijian", "dengzhen"], ["leiting", "yingli", "xuntian"]);
   const actor = fighter(snapshot, "p1", "ningyao");
   const ally = fighter(snapshot, "p1", "baijian");
   const enemy = fighter(snapshot, "p2", "leiting");
   setActive(snapshot, "p1", "ningyao");
+  snapshot.state.queue.push({ side: "p1", id: "baijian" });
+  const originalQueueLength = snapshot.state.queue.length;
 
   snapshot.state.players.p1.marks = 3;
   let result = game.judgement(snapshot, "atk");
   assert(result.ok, "1-cost attack judgement should succeed");
-  assert(result.actionSpent, "judgement should spend the current action");
+  assert(!result.actionSpent, "judgement should not spend the current action");
   assert(actor.flags.judgementDamageBonus === 1, "1 judgement should add next damage +1");
+  assert(snapshot.state.active?.id === "ningyao", "actor should remain active after judgement");
+  assert(snapshot.state.queue.length === originalQueueLength, "judgement should not advance the queue");
 
   snapshot.state.players.p1.judgementUsed = false;
   ally.hpNow = 5;
   ally.cd = 2;
   result = game.judgement(snapshot, "heal", key("p1", "baijian"));
   assert(result.ok, "2-cost heal judgement should succeed");
-  assert(result.actionSpent, "2-cost judgement should spend the current action");
+  assert(!result.actionSpent, "2-cost judgement should not spend the current action");
   assert(ally.hpNow === 6 && ally.cd === 1, "2 judgement should heal 1 and reduce cooldown 1");
 
   snapshot.state.players.p1.judgementUsed = false;
   snapshot.state.players.p1.marks = 3;
   result = game.judgement(snapshot, "seal", key("p2", "leiting"));
   assert(result.ok, "3-cost seal judgement should succeed");
-  assert(result.actionSpent, "3-cost judgement should spend the current action");
+  assert(!result.actionSpent, "3-cost judgement should not spend the current action");
   assert(enemy.flags.noResNextSkill === true, "3 judgement should block next skill resonance");
   assert(enemy.statuses.includes(game.STATUS.SLOW), "3 judgement should apply slow");
+
+  const attackResult = game.attack(snapshot, key("p2", "leiting"));
+  assert(attackResult.ok && attackResult.actionSpent, "actor should still be able to attack after judgement");
+  game.finishAction(snapshot);
+  assert(!snapshot.state.queue.some(item => item.side === "p1" && item.id === "ningyao"), "actor should leave the queue after the follow-up action");
 });
 
 test("finishAction removes the actor that spent the action after queue reorder", () => {
@@ -204,6 +213,27 @@ test("finishAction removes the actor that spent the action after queue reorder",
   assert(snapshot.state.active?.id !== "dengzhen", "spent actor should not become active again");
 });
 
+test("queue rebuilds do not give an already acted fighter a second action", () => {
+  const snapshot = battle(["fengxing", "tianxun", "baijian"], ["leiting", "yingli", "xuntian"]);
+  snapshot.state.queue = [
+    { side: "p1", id: "fengxing" },
+    { side: "p1", id: "tianxun" },
+    { side: "p2", id: "leiting" }
+  ];
+  snapshot.state.active = { side: "p1", id: "fengxing" };
+
+  const first = game.rest(snapshot);
+  assert(first.ok && first.actionSpent, "Fengxing rest should spend the action");
+  game.finishAction(snapshot);
+  assert(!snapshot.state.queue.some(item => item.side === "p1" && item.id === "fengxing"), "Fengxing should leave the queue after acting");
+
+  const second = game.useSkill(snapshot, null, { choices: ["spd"] });
+  assert(second.ok && second.actionSpent, "Tianxun speed command should spend the action and rebuild the queue");
+  game.finishAction(snapshot);
+  assert(!snapshot.state.queue.some(item => item.side === "p1" && item.id === "fengxing"), "Queue rebuild should not re-add Fengxing after he already acted this round");
+  assert(snapshot.state.active?.id !== "fengxing", "Fengxing should not become active twice in the same round");
+});
+
 test("Tianxun round-start focus grants +1 SPD", () => {
   const snapshot = battle(["tianxun", "ningyao", "baijian"], ["leiting", "yingli", "xuntian"], { settle: false });
   assert(snapshot.state.pendingTianxunFocus, "Tianxun focus prompt should be pending");
@@ -212,6 +242,80 @@ test("Tianxun round-start focus grants +1 SPD", () => {
   const result = game.decideTianxunFocus(snapshot, key("p1", "ningyao"));
   assert(result.ok, "Tianxun focus decision should succeed");
   assert(game.currentSpd(target) === before + 1, "Tianxun focus should increase SPD by 1");
+});
+
+test("Tianxun rule supplement uses +1 MVP balance values", () => {
+  const speedSnapshot = battle(["tianxun", "ningyao", "baijian"], ["leiting", "yingli", "xuntian"]);
+  const speedAlly = fighter(speedSnapshot, "p1", "ningyao");
+  const speedBefore = game.currentSpd(speedAlly);
+  setActive(speedSnapshot, "p1", "tianxun");
+  let result = game.useSkill(speedSnapshot, null, { choices: ["spd"] });
+  assert(result.ok && result.actionSpent, "Tianxun SPD rule should resolve");
+  assert(game.currentSpd(speedAlly) === speedBefore + 1, "Tianxun team SPD rule should add only +1");
+
+  const attackSnapshot = battle(["tianxun", "ningyao", "baijian"], ["leiting", "yingli", "xuntian"]);
+  attackSnapshot.state.players.p2.openingDefenseUsed = true;
+  setActive(attackSnapshot, "p1", "tianxun");
+  result = game.useSkill(attackSnapshot, null, { choices: ["atk"] });
+  assert(result.ok && result.actionSpent, "Tianxun attack rule should resolve");
+  const attacker = fighter(attackSnapshot, "p1", "ningyao");
+  const attackTarget = fighter(attackSnapshot, "p2", "leiting");
+  setActive(attackSnapshot, "p1", "ningyao");
+  const attackHp = attackTarget.hpNow;
+  result = game.attack(attackSnapshot, key("p2", "leiting"));
+  assert(result.ok && result.actionSpent, "follow-up attack should resolve");
+  assert(attackHp - attackTarget.hpNow === game.currentAtk(attacker) + 1, "Tianxun attack rule should add only +1 damage");
+
+  const skillSnapshot = battle(["tianxun", "ningyao", "baijian"], ["leiting", "yingli", "xuntian"]);
+  skillSnapshot.state.players.p2.openingDefenseUsed = true;
+  setActive(skillSnapshot, "p1", "tianxun");
+  result = game.useSkill(skillSnapshot, null, { choices: ["skill"] });
+  assert(result.ok && result.actionSpent, "Tianxun skill rule should resolve");
+  const skillSource = fighter(skillSnapshot, "p1", "ningyao");
+  const skillTarget = fighter(skillSnapshot, "p2", "leiting");
+  const dealt = game.damage(skillSnapshot, skillSource, skillTarget, 2, { skill: true, label: "test skill damage" });
+  assert(dealt === 3, `Tianxun skill rule should add only +1 damage, got ${dealt}`);
+});
+
+test("Huiyin copy skill only allows targets matching the copied skill kind", () => {
+  const damageSnapshot = battle(["huiyin", "ningyao", "baijian"], ["leiting", "yingli", "xuntian"]);
+  const huiyinDamage = fighter(damageSnapshot, "p1", "huiyin");
+  const ally = fighter(damageSnapshot, "p1", "baijian");
+  const enemy = fighter(damageSnapshot, "p2", "leiting");
+  damageSnapshot.state.players.p2.openingDefenseUsed = true;
+  damageSnapshot.state.lastCopyableSkill.p1 = { kind: "damage", amount: 2, name: "test damage" };
+  setActive(damageSnapshot, "p1", "huiyin");
+  assert(game.skillTargetFilter(damageSnapshot, huiyinDamage) === "enemy", "Huiyin copied damage should target enemies");
+  const damageEnergy = damageSnapshot.state.players.p1.energy;
+  const allyHp = ally.hpNow;
+  let result = game.useSkill(damageSnapshot, key("p1", "baijian"));
+  assert(!result.ok, "Huiyin copied damage should reject allied targets");
+  assert(ally.hpNow === allyHp, "Rejected Huiyin copied damage should not damage an ally");
+  assert(damageSnapshot.state.players.p1.energy === damageEnergy, "Rejected Huiyin copied damage should refund energy");
+  const enemyHp = enemy.hpNow;
+  result = game.useSkill(damageSnapshot, key("p2", "leiting"));
+  assert(result.ok && result.actionSpent, "Huiyin copied damage should resolve against enemies");
+  assert(enemyHp - enemy.hpNow === 3, "Huiyin copied damage should deal copied amount +1");
+
+  const healSnapshot = battle(["huiyin", "ningyao", "baijian"], ["leiting", "yingli", "xuntian"]);
+  const huiyinHeal = fighter(healSnapshot, "p1", "huiyin");
+  const healAlly = fighter(healSnapshot, "p1", "baijian");
+  const healEnemy = fighter(healSnapshot, "p2", "leiting");
+  healSnapshot.state.lastCopyableSkill.p1 = { kind: "heal", amount: 2, name: "test heal" };
+  healAlly.hpNow -= 4;
+  healEnemy.hpNow -= 2;
+  setActive(healSnapshot, "p1", "huiyin");
+  assert(game.skillTargetFilter(healSnapshot, huiyinHeal) === "ally", "Huiyin copied heal should target allies");
+  const healEnergy = healSnapshot.state.players.p1.energy;
+  const enemyBeforeReject = healEnemy.hpNow;
+  result = game.useSkill(healSnapshot, key("p2", "leiting"));
+  assert(!result.ok, "Huiyin copied heal should reject enemy targets");
+  assert(healEnemy.hpNow === enemyBeforeReject, "Rejected Huiyin copied heal should not heal an enemy");
+  assert(healSnapshot.state.players.p1.energy === healEnergy, "Rejected Huiyin copied heal should refund energy");
+  const allyBeforeHeal = healAlly.hpNow;
+  result = game.useSkill(healSnapshot, key("p1", "baijian"));
+  assert(result.ok && result.actionSpent, "Huiyin copied heal should resolve against allies");
+  assert(healAlly.hpNow === Math.min(healAlly.maxHp, allyBeforeHeal + 3), "Huiyin copied heal should heal copied amount +1");
 });
 
 test("Qiheng skill pays HP cost without changing balance rules", () => {

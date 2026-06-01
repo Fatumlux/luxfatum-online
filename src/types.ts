@@ -144,6 +144,7 @@ export interface FighterFlags {
   tianxunFocusPromptedRound: number;
   qihengBalancePromptedRound: number;
   fengxingStarPromptedRound: number;
+  actedRound: number;
   debtPromptedRound: number;
   debtMark: BattleMark | null;
   timeTaxMark: BattleMark | null;

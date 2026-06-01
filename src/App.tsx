@@ -38,6 +38,7 @@ import {
   rest as rulesRest,
   skillCost,
   skillFilter,
+  skillTargetFilter,
   startBattle as rulesStartBattle,
   targetList as rulesTargetList,
   useSkill as rulesUseSkill
@@ -622,7 +623,7 @@ function aiSkillPlan(snapshot: GameSnapshot, actor: Fighter, difficulty: AiDiffi
     return target ? { targetKey: aiTargetKey(target), opts } : null;
   }
 
-  const filter = skillFilter(actor);
+  const filter = skillTargetFilter(snapshot, actor);
   if (filter === "none") return { targetKey: null, opts };
   if (filter === "ally") return ally ? { targetKey: aiTargetKey(ally), opts } : null;
   if (filter === "self") return { targetKey: aiTargetKey(actor), opts };
@@ -748,10 +749,7 @@ function aiRunBattleStep(snapshot: GameSnapshot, difficulty: AiDifficulty) {
   const actor = rulesActiveF(snapshot) as Fighter | null;
   if (!actor || actor.owner !== AI_SIDE || actor.hpNow <= 0) return false;
   const player = state.players[actor.owner];
-  if (aiTryJudgement(snapshot, actor, difficulty)) {
-    finishAction(snapshot);
-    return true;
-  }
+  if (aiTryJudgement(snapshot, actor, difficulty)) return true;
 
   const canSkill = actor.cd <= 0
     && !actor.statuses.includes(STATUS.SEAL)
@@ -2617,7 +2615,7 @@ const SKILL_DETAILS: Record<string, { target: string; effects: string[]; impact:
   xiaomo: { target: "敵方 1 名", effects: ["擲硬幣。", "正面：造成 4 傷害。", "反面：目標混亂，不造成傷害。"], impact: ["混亂會讓下一次指定目標由對手決定。", "反面不造成傷害且不觸發「下注」的遲緩追加。"], resonance: ["「下注」的遲緩追加不會在反面觸發。"] },
   huiyin: { target: "依複製技能而定", effects: ["複製我方上一個可複製且成功結算的技能，數值 +1。", "若沒有可複製技能，改為對 1 敵造成 2 傷害。"], impact: ["可被複製的內容以最後記錄的傷害或治癒數值為準。"], resonance: ["此技能費用 -1。"] },
   yingli: { target: "敵方 1 名", effects: ["造成 1 傷害並給予混亂。"], impact: ["若目標已有混亂，額外造成 2 傷害。"], resonance: ["映璃本回合受傷 -1。"] },
-  tianxun: { target: "選擇規則效果", effects: ["可選普攻傷害 +2、技能傷害 +2、我方全體 SPD +2、最低 SPD 先行動。"], impact: ["未共鳴最多選 1 項。", "回合開始被動會先由操作者選 1 名我方角色 SPD +1。"], resonance: ["可選 2 項，但天訊本回合不能防禦。"] },
+  tianxun: { target: "選擇規則效果", effects: ["可選普攻傷害 +1、技能傷害 +1、我方全體 SPD +1、最低 SPD 先行動。"], impact: ["未共鳴最多選 1 項。", "回合開始被動會先由操作者選 1 名我方角色 SPD +1。"], resonance: ["可選 2 項，但天訊本回合不能防禦。"] },
   xuntian: { target: "敵方 1 名", effects: ["造成 3 傷害。"], impact: ["下回合訊天使用技能費用 +1。"], resonance: ["若目標技能後 HP 為 2 以下，額外造成 1 傷害。"] },
   zuozhe: { target: "敵方 1 名", effects: ["造成 2 傷害並擲硬幣。", "正面：給予混亂。", "反面：目標本回合與下回合 ATK / SPD -1。"], impact: ["混亂與數值降低都會寫入戰鬥紀錄。"], resonance: ["技能後額外給予觀測。"] },
   jingren: { target: "自身", effects: ["自身獲得守護。", "下回合 SPD 變為 4。"], impact: ["守護可代替我方承傷一次。", "全域鏡返每場 2 次、每回合最多 1 次，反彈傷害上限 2。"], resonance: ["鏡返節奏更穩定，但每回合仍只能發動 1 次。"] },
@@ -3124,7 +3122,7 @@ function SkillDialog({ actor, snapshot, onClose, onUseSkill }: { actor: Fighter;
   const [choices, setChoices] = useState<string[]>([]);
   const player = snapshot.state.players?.[actor.owner];
   const resDisabled = !player || player.resUsed >= RULES.RESONANCE_PER_ROUND || !alive(player.team).some(fighter => fighter.id !== actor.id);
-  const filter = skillFilter(actor);
+  const filter = skillTargetFilter(snapshot, actor);
   const targets = rulesTargetList(snapshot, filter);
   const allyTargets = rulesTargetList(snapshot, "ally");
   const enemyTargets = rulesTargetList(snapshot, "enemy");
@@ -3154,7 +3152,7 @@ function SkillDialog({ actor, snapshot, onClose, onUseSkill }: { actor: Fighter;
       <div className="dialog-section skill-overview"><h3>效果解析</h3><SkillBreakdown fighter={actor} player={player} previewResonance={res} />{actor.id === "liewu" ? <NegativeEffectPanel fighter={actor} /> : null}</div>
       {actor.id === "jingren" ? <button onClick={() => onUseSkill(`${actor.owner}:${actor.id}`, {})}>施放影步守勢</button> : null}
       {actor.id !== "jingren" ? <div className="dialog-section resonance-box"><h3>共鳴</h3><label className="row"><input type="checkbox" disabled={resDisabled} checked={res} onChange={event => setRes(event.target.checked)} style={{ width: "auto" }} /> 使用共鳴：{actor.res.name}</label><p className="skill-desc"><b>{actor.res.name}</b>：{actor.res.desc}</p><p className="desc">{resReason}</p></div> : null}
-      {actor.id === "tianxun" ? <><div className="dialog-section"><h3>選擇效果</h3><div className="choice-grid">{[["atk", "普攻傷害 +2"], ["skill", "技能傷害 +2"], ["spd", "我方全體 SPD +2"], ["low", "最低 SPD 先行動"]].map(([value, label]) => <label key={value} className="choice"><input type="checkbox" checked={choices.includes(value)} onChange={() => toggleChoice(value)} /> <span className="choice-title">{label}</span></label>)}</div></div><button onClick={() => onUseSkill(null, { res, choices })}>施放</button></> : null}
+      {actor.id === "tianxun" ? <><div className="dialog-section"><h3>選擇效果</h3><div className="choice-grid">{[["atk", "普攻傷害 +1"], ["skill", "技能傷害 +1"], ["spd", "我方全體 SPD +1"], ["low", "最低 SPD 先行動"]].map(([value, label]) => <label key={value} className="choice"><input type="checkbox" checked={choices.includes(value)} onChange={() => toggleChoice(value)} /> <span className="choice-title">{label}</span></label>)}</div></div><button onClick={() => onUseSkill(null, { res, choices })}>施放</button></> : null}
       {actor.id === "baidengling" ? <button onClick={() => onUseSkill(null, { res })}>施放希望微光</button> : null}
       {actor.id === "dengzhen" ? <div className="dialog-section"><h3>選擇目標</h3><div className="choice-grid">{targets.map(target => <div key={target.key} className="choice"><span className="choice-title">{sideName(target.side)} {target.c.name}</span><StatChips fighter={target.c} compact /><div className="row" style={{ marginTop: 12 }}><button onClick={() => onUseSkill(target.key, { mode: "up", res })}>SPD +2</button><button onClick={() => onUseSkill(target.key, { mode: "down", res })}>SPD -2</button></div></div>)}</div></div> : null}
       {actor.id === "qiheng" ? (

@@ -1,0 +1,338 @@
+Project: LuxFatum裁定對決
+Project Type: MVP web game / demo
+Tech Stack: Vite + React + TypeScript + Node.js + npm
+Goal: Build and maintain a playable browser-based MVP/demo with clear project management, checks, and deployment paths.
+
+Rules:
+- Always process the first [TODO] only.
+- STEP items are implementation sessions.
+- REVIEW_GATE items are review-only sessions if a review gate is explicitly listed.
+- Do not skip review gates if present.
+- Do not mark future steps as [DONE].
+- If blocked, mark the active item [BLOCKED] and explain why.
+- Roadmap shortened on 2026-06-01 by user direction; this MVP no longer uses the original 16-step queue.
+
+===============================================================================
+[DONE] STEP_01_PROJECT_CONTRACT_AND_SCAFFOLD
+-------------------------------------------------------------------------------
+Purpose:
+Create the project management contract, baseline documentation, setup/check scripts,
+minimal entry-point confirmation, and basic folders.
+
+Completion Notes:
+- Established the project contract for a Vite + React + TypeScript + Node.js MVP/demo web game.
+- Added agent workflow rules requiring every future session to read this file, process exactly one item, and respect review gates.
+- Added baseline design brief, README instructions, setup scripts, check script, and basic `.codex/` and `tools/` folders.
+- Confirmed the existing minimal project entry path remains `index.html` -> `src/main.tsx`.
+
+Changed Files:
+- AGENTS.md
+- DESIGN_BRIEF.md
+- README.md
+- progress.txt
+- .codex/setup.sh
+- tools/bootstrap_linux.sh
+- tools/bootstrap_windows.ps1
+- tools/check_project.sh
+
+Test Result:
+- PASS: `powershell -ExecutionPolicy Bypass -File tools/bootstrap_windows.ps1` completed static fallback checks with 20 PASS, 2 WARN, 0 FAIL.
+- PASS: `npm run check` / `node --check server.js`.
+- PASS: `tools/bootstrap_windows.ps1` parses.
+- WARN: `bash tools/check_project.sh` could not run in this Windows shell because `bash` is not installed.
+- WARN: Dependency installation through `npm ci` failed with EPERM while unlinking `node_modules/@rolldown/binding-win32-x64-msvc/rolldown-binding.win32-x64-msvc.node`; bootstrap fell back to static checks as designed.
+- WARN: `npm run typecheck`, `npm run test:rules`, and `npm run build` could not complete because local npm dependencies such as `typescript`, `tsc`, and `vite` were unavailable after the failed dependency install. This belongs to STEP_02_ENVIRONMENT_AND_CHECKS.
+
+===============================================================================
+[DONE] STEP_02_ENVIRONMENT_AND_CHECKS
+-------------------------------------------------------------------------------
+Purpose:
+Validate local environment setup, dependency installation, and project checks.
+
+Completion Notes:
+- Validated the local Windows environment with Node.js v24.13.0 and npm 11.6.2.
+- Found stale Vite/preview Node processes using this repository's `node_modules`, stopped only those project-local processes, and reran dependency installation.
+- Restored dependencies with `npm ci`; npm reported 39 packages installed/audited and 0 vulnerabilities.
+- Confirmed npm can resolve `typescript@6.0.3` and `vite@8.0.14`.
+- Updated environment check scripts so Windows fallback runs the same npm checks when Bash is unavailable.
+- Expanded project checks to include the existing `smoke:ui` script in addition to syntax, typecheck, rules tests, and build.
+
+Changed Files:
+- progress.txt
+- tools/bootstrap_windows.ps1
+- tools/check_project.sh
+
+Test Result:
+- PASS: `npm ci`.
+- PASS: `npm ls typescript vite --depth=0`.
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run test:rules` with 12 rule tests passed.
+- PASS: `npm run smoke:ui`; report written to `artifacts/v5.0.0-smoke/smoke-report.json`.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+- PASS: `powershell -ExecutionPolicy Bypass -File tools/bootstrap_windows.ps1` completed with 26 PASS, 1 WARN, 0 FAIL.
+- WARN: Bash is not installed in this Windows shell, so `tools/check_project.sh` was not executed directly here. The Windows bootstrap now runs equivalent PowerShell checks when Bash is unavailable.
+
+===============================================================================
+[DONE] STEP_03_CORE_ARCHITECTURE
+-------------------------------------------------------------------------------
+Purpose:
+Review and stabilize the core architecture boundaries for the web game, server,
+assets, and build outputs.
+
+Completion Notes:
+- Mapped the existing browser app runtime path: `index.html` -> `src/main.tsx` -> `src/App.tsx`.
+- Documented frontend, game domain, component/rendering, network, server, asset, build-output, and packaging boundaries in `ARCHITECTURE.md`.
+- Recorded current public server routes and architecture locks so future steps do not accidentally change API, generated outputs, or tech stack boundaries.
+- Added `ARCHITECTURE.md` to project presence checks in both Bash and Windows check flows.
+- Added a README pointer to the architecture document.
+
+Changed Files:
+- ARCHITECTURE.md
+- README.md
+- progress.txt
+- tools/bootstrap_windows.ps1
+- tools/check_project.sh
+
+Test Result:
+- PASS: `powershell -ExecutionPolicy Bypass -File tools/bootstrap_windows.ps1`.
+- PASS: dependency install via `npm ci` inside bootstrap.
+- PASS: static project file checks including `ARCHITECTURE.md`.
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run test:rules` with 12 rule tests passed.
+- PASS: `npm run smoke:ui`; report written to `artifacts/v5.0.0-smoke/smoke-report.json`.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+- PASS: no lingering Node process was found using this repository's `node_modules` after smoke/build.
+- WARN: Bash is not installed in this Windows shell; Windows fallback checks completed with 27 PASS, 1 WARN, 0 FAIL.
+
+===============================================================================
+[DONE] REVIEW_GATE_01_AFTER_STEP_03
+-------------------------------------------------------------------------------
+Purpose:
+Review Steps 01-03 only. Confirm project contract, environment checks, and core
+architecture before continuing.
+
+Completion Notes:
+- Reviewed Steps 01-03 only, as required by the review gate.
+- Confirmed the project contract, sequential progress workflow, environment setup, checks, and architecture boundary documentation are in place.
+- Confirmed `README.md` includes the required Codex continuation instruction and current run/check/build guidance.
+- Confirmed `ARCHITECTURE.md` documents frontend, game domain, rendering, network, server, assets, generated outputs, packaging surfaces, and architecture locks.
+- No blocking issue found for continuing to STEP_04_DATA_OR_DOMAIN_MODEL.
+- Non-blocking review finding: `tools/check_project.sh` still contains a stale STEP_02-specific next-TODO warning for Bash users. It warns but does not fail; it should be cleaned up in a future environment/check maintenance pass.
+
+Changed Files:
+- progress.txt
+
+Test Result:
+- PASS: `npm ls typescript vite --depth=0`.
+- PASS: UTF-8 content check confirmed project name and README continuation phrase are present despite PowerShell console mojibake.
+- PASS: `powershell -ExecutionPolicy Bypass -File tools/bootstrap_windows.ps1`.
+- PASS: dependency install via `npm ci` inside bootstrap.
+- PASS: static project file checks including `AGENTS.md`, `progress.txt`, `DESIGN_BRIEF.md`, `ARCHITECTURE.md`, `README.md`, setup scripts, and core entry files.
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run test:rules` with 12 rule tests passed.
+- PASS: `npm run smoke:ui`; report written to `artifacts/v5.0.0-smoke/smoke-report.json`.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+- PASS: no lingering Node process was found using this repository's `node_modules` after smoke/build.
+- WARN: Bash is not installed in this Windows shell; Windows fallback checks completed with 27 PASS, 1 WARN, 0 FAIL.
+
+===============================================================================
+[DONE] STEP_04_DATA_OR_DOMAIN_MODEL
+-------------------------------------------------------------------------------
+Purpose:
+Define or verify the game data/domain model used by characters, rules, state, and
+gameplay decisions.
+
+Completion Notes:
+- Documented the current data/domain model in `DOMAIN_MODEL.md`, including `CharacterCard`, runtime `Fighter`, `GameState`, `RuleActionResult`, rule constants, invariants, and change rules.
+- Added `scripts/validate-domain-model.mjs` to verify structural domain invariants using existing TypeScript tooling and no new dependencies.
+- Domain validation checks rule constants, unique character ids, catalog card fields, metadata shape, portrait helper consistency, portrait asset existence, and `startBattle` runtime state creation.
+- Added `npm run validate:domain`.
+- Wired domain validation into both Bash and Windows project check flows.
+- Replaced the stale hardcoded STEP_02 Bash next-TODO warning with a generic first-TODO check.
+- Added `DOMAIN_MODEL.md` to project presence checks and README current-implementation notes.
+
+Changed Files:
+- DOMAIN_MODEL.md
+- README.md
+- package.json
+- progress.txt
+- scripts/validate-domain-model.mjs
+- tools/bootstrap_windows.ps1
+- tools/check_project.sh
+
+Test Result:
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run typecheck`.
+- PASS: `npm run test:rules` with 12 rule tests passed.
+- PASS: `powershell -ExecutionPolicy Bypass -File tools/bootstrap_windows.ps1`.
+- PASS: dependency install via `npm ci` inside bootstrap.
+- PASS: static project file checks including `DOMAIN_MODEL.md`.
+- PASS: `npm run check`.
+- PASS: `npm run validate:domain` inside bootstrap.
+- PASS: `npm run smoke:ui`; report written to `artifacts/v5.0.0-smoke/smoke-report.json`.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+- PASS: no lingering Node process was found using this repository's `node_modules` after smoke/build.
+- WARN: Bash is not installed in this Windows shell; Windows fallback checks completed with 30 PASS, 1 WARN, 0 FAIL.
+
+===============================================================================
+[DONE] STEP_05_MAIN_FEATURE_SKELETON
+-------------------------------------------------------------------------------
+Purpose:
+Create or verify the main playable feature skeleton without adding feature depth.
+
+Completion Notes:
+- Verified the existing playable battle skeleton and focused this session on the main turn/action loop.
+- Fixed a turn-order skeleton bug where rebuilding the queue could re-add a fighter that had already spent its action this round.
+- Added a per-fighter `actedRound` runtime flag so speed/order rebuilds, including Tianxun speed effects, cannot give Fengxing or any other fighter a second action in the same round.
+- Added a focused rule regression test covering Fengxing acting before Tianxun rebuilds the queue.
+- Updated Judgement so it does not spend the current fighter's action; it remains limited by the existing once-per-player-per-round rule.
+- Updated AI battle flow so AI can use Judgement and still continue to its normal action on a later AI step.
+- Tianxun was not broadly rebalanced in this step; the queue fix removes one major source of Tianxun feeling too strong by preventing speed effects from re-granting actions.
+
+Changed Files:
+- src/game.ts
+- src/types.ts
+- src/App.tsx
+- scripts/test-rules.mjs
+- progress.txt
+- web-build/ (regenerated by `npm run build`)
+
+Test Result:
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run test:rules` with 13 rule tests passed, including the new queue-rebuild regression and Judgement follow-up action coverage.
+- PASS: `npm run smoke:ui`; report written to `artifacts/v5.0.0-smoke/smoke-report.json`.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+
+===============================================================================
+[DONE] STEP_06_GAMEPLAY_BALANCE_AND_BUGFIX
+-------------------------------------------------------------------------------
+Purpose:
+Prioritize remaining MVP gameplay balance and concrete playtest bugs reported by
+the user.
+
+Completion Notes:
+- Prioritized the user-reported balance issue that Tianxun felt too strong.
+- Kept Tianxun's round-start single-target SPD +1 identity, but reduced `規則補充` from +2 global swing values to +1 MVP tuning.
+- Tianxun skill choices now grant only: normal attack damage +1, skill damage +1, allied team SPD +1, or lowest SPD acts first.
+- Updated Tianxun catalog text, role metadata, skill detail UI text, and skill dialog option labels to match the new balance.
+- Added a focused rule regression test proving Tianxun's attack, skill, and SPD rule supplements are +1.
+- Existing Fengxing double-action bugfix from STEP_05 remains covered by rule tests.
+
+Changed Files:
+- src/game.ts
+- src/data/characters.ts
+- src/App.tsx
+- scripts/test-rules.mjs
+- progress.txt
+- web-build/ (regenerated by `npm run build`)
+
+Test Result:
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run test:rules` with 14 rule tests passed, including Tianxun +1 MVP balance coverage.
+- PASS: `npm run smoke:ui`; report written to `artifacts/v5.0.0-smoke/smoke-report.json`.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+
+===============================================================================
+[DONE] STEP_07_FINAL_CHECK_AND_REPORT
+-------------------------------------------------------------------------------
+Purpose:
+Run final MVP checks/build and report the current playable demo state plus any
+remaining risks.
+
+Completion Notes:
+- Ran the final MVP verification pass after the Fengxing/Judgement bugfixes and Tianxun balance pass.
+- Current playable demo state: menu, draft, battle, combat drawer, skill dialog, rules, and settlement flows render in the scripted UI smoke coverage across desktop and mobile viewports.
+- Current gameplay state: Fengxing cannot regain a second action from turn-queue rebuilds, Judgement does not spend the active fighter's action, and Tianxun's `rule supplement` tuning is now +1 for MVP balance.
+- Remaining risks: this session did not include a long manual human playtest beyond automated rules and UI smoke coverage.
+- Remaining risks: the git worktree still contains pre-existing/unrelated dirty, untracked, generated, and deleted asset/build-output entries; release staging should be reviewed carefully.
+- Non-blocking note: the UI smoke command emitted Chromium DevTools/socket diagnostic noise after reporting success, but the command exited 0 and the smoke report recorded 0 failures.
+
+Changed Files:
+- progress.txt
+- artifacts/v5.0.0-smoke/smoke-report.json (rewritten by `npm run smoke:ui`)
+- web-build/ (regenerated by `npm run build`)
+
+Test Result:
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run test:rules` with 14 rule tests passed.
+- PASS: `npm run smoke:ui`; UI smoke passed and report recorded 0 failures.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+
+===============================================================================
+[DONE] STEP_09_GITHUB_UPDATE
+-------------------------------------------------------------------------------
+Purpose:
+Commit and push the current MVP gameplay fixes and project management updates to
+the configured GitHub repository without staging unrelated local worktree changes.
+
+Completion Notes:
+- Prepared a scoped GitHub update for the current MVP gameplay fixes and project-management checks.
+- Included the turn-queue double-action fix, Judgement no-action-spend behavior, Tianxun +1 balance tuning, and Huiyin copied-skill target legality fix.
+- Included focused rule regressions, the domain validation script, short project workflow docs, and progress tracking.
+- Intentionally did not stage unrelated/high-risk local worktree changes such as `dist/`, `public/assets/cards/`, `web-build/`, Steam audit documents, or generated release assets.
+- Pushed the scoped update to `origin/main`.
+
+Changed Files:
+- AGENTS.md
+- ARCHITECTURE.md
+- DESIGN_BRIEF.md
+- DOMAIN_MODEL.md
+- package.json
+- progress.txt
+- .codex/setup.sh
+- tools/bootstrap_linux.sh
+- tools/bootstrap_windows.ps1
+- tools/check_project.sh
+- scripts/validate-domain-model.mjs
+- scripts/test-rules.mjs
+- src/App.tsx
+- src/data/characters.ts
+- src/game.ts
+- src/types.ts
+
+Test Result:
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run test:rules` with 15 rule tests passed.
+- PASS: `npm run smoke:ui`; UI smoke passed and report recorded 0 failures.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
+
+===============================================================================
+[DONE] STEP_08_HUIYIN_SKILL_LOGIC_FIX
+-------------------------------------------------------------------------------
+Purpose:
+Fix the user-reported Huiyin skill usage logic issue without expanding the MVP
+scope.
+
+Completion Notes:
+- Fixed Huiyin's copy-skill target logic in the shared rules layer.
+- Huiyin now treats copied damage as enemy-targeted and copied healing as ally-targeted; with no copied skill, the fallback remains enemy-targeted 2 damage.
+- Invalid Huiyin copy targets now fail before resolving effects and refund the attempted skill cost through the existing rollback path.
+- Updated skill target selection so the player-facing skill dialog and confusion retarget flow use Huiyin's current copied-skill kind instead of showing all fighters.
+- Added a focused regression test covering copied damage, copied healing, rejected wrong-side targets, energy rollback, and the copied value +1 rule.
+
+Changed Files:
+- src/game.ts
+- src/App.tsx
+- scripts/test-rules.mjs
+- progress.txt
+- artifacts/v5.0.0-smoke/smoke-report.json (rewritten by `npm run smoke:ui`)
+- web-build/ (regenerated by `npm run build`)
+
+Test Result:
+- PASS: `npm run check`.
+- PASS: `npm run typecheck`.
+- PASS: `npm run validate:domain` with 5 domain model checks passed for 25 characters.
+- PASS: `npm run test:rules` with 15 rule tests passed, including Huiyin copied target legality coverage.
+- PASS: `npm run smoke:ui`; UI smoke passed and report recorded 0 failures.
+- PASS: `npm run build`; Vite production build completed into `web-build/`.
